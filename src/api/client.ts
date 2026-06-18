@@ -131,4 +131,72 @@ export const api = {
 
   getBacktestResult: (jobId: string) =>
     apiClient.get<BacktestResult>(`/api/backtest/result/${jobId}`).then((r) => r.data),
+
+  getPositions: () =>
+    apiClient.get<Position[]>('/api/portfolio/positions').then((r) => r.data),
+
+  getBalance: () =>
+    apiClient.get<AccountBalance>('/api/portfolio/balance').then((r) => r.data),
+
+  riskCheck: (req: OrderRequest) =>
+    apiClient.post<RiskCheckResult>('/api/portfolio/risk-check', req).then((r) => r.data),
+
+  placeOrder: (req: OrderRequest) =>
+    apiClient.post<Order>('/api/portfolio/orders', req).then((r) => r.data),
+
+  getOrders: () =>
+    apiClient.get<Order[]>('/api/portfolio/orders').then((r) => r.data),
+}
+
+export type OrderSide = 'BUY' | 'SELL'
+export type OrderStatus = 'PENDING' | 'FILLED' | 'CANCELLED' | 'REJECTED'
+
+export interface Position {
+  ticker: string
+  market: 'CN' | 'US'
+  name: string
+  qty: number
+  avg_cost: number
+  current_price: number
+  market_value: number
+  pnl: number
+  pnl_pct: number
+}
+
+export interface AccountBalance {
+  total_assets: number
+  cash: number
+  market_value: number
+  daily_pnl: number
+  daily_pnl_pct: number
+}
+
+export interface OrderRequest {
+  ticker: string
+  market: 'CN' | 'US'
+  side: OrderSide
+  qty: number
+  price: number
+  paper_trade?: boolean
+}
+
+export interface Order {
+  order_id: string
+  ticker: string
+  market: 'CN' | 'US'
+  side: OrderSide
+  qty: number
+  price: number
+  status: OrderStatus
+  filled_qty: number
+  filled_price: number
+  created_at: string
+  updated_at: string
+  reject_reason?: string
+  paper_trade: boolean
+}
+
+export interface RiskCheckResult {
+  passed: boolean
+  reason?: string
 }
