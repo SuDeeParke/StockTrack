@@ -21,10 +21,10 @@
 
 - [x] **H-03** · Signals 切片：signals-mock.ts + routes/signals.ts + 7 个测试用例
 - [x] **H-04** · Backtest 切片：backtest-engine.ts + routes/backtest.ts + 6 个测试用例
-- [ ] **H-05** · Portfolio 切片：futu-mock.ts + routes/portfolio.ts + 8 个测试用例
+- [x] **H-05** · Portfolio 切片：futu-mock.ts + routes/portfolio.ts + 8 个测试用例
 
 ### Phase B Checkpoint
-- [ ] `npm run server:test` ≥20 个测试全部通过
+- [x] `npm run server:test` ≥20 个测试全部通过
 - [ ] 信号看板、回测、交易面板三页面视觉验证通过
 - [ ] 与 FastAPI 并行对比所有端点响应结构
 

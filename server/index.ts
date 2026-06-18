@@ -5,6 +5,7 @@ import { logger } from 'hono/logger'
 import { fileURLToPath } from 'node:url'
 import { signalsRouter } from './routes/signals.js'
 import { backtestRouter } from './routes/backtest.js'
+import { portfolioRouter } from './routes/portfolio.js'
 
 const app = new Hono()
 
@@ -17,6 +18,7 @@ app.get('/api/health', (c) => {
 
 app.route('/', signalsRouter)
 app.route('/', backtestRouter)
+app.route('/', portfolioRouter)
 
 const PORT = Number(process.env.PORT) || 3000
 
