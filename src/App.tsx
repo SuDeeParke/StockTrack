@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout'
 import Dashboard from './pages/Dashboard'
+import Backtest from './pages/Backtest'
 import StockDetail from './pages/StockDetail'
 import './index.css'
 
@@ -21,6 +22,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Layout />}>
             <Route index element={<Dashboard />} />
+            <Route path="backtest" element={<Backtest />} />
             <Route path="stock/:ticker" element={<StockDetail />} />
           </Route>
         </Routes>
