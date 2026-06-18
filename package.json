@@ -11,8 +11,8 @@
     "server:dev": "cd server && npm run dev",
     "server:build": "cd server && npm run build",
     "server:test": "cd server && npm run test",
-    "build:full": "npm run build && npm run server:build",
-    "start": "NODE_ENV=production node server/dist/index.js"
+    "build:full": "npm run build && npm run server:build && node -e \"require('fs').cpSync('dist','server/dist/public',{recursive:true})\"",
+    "start": "node server/dist/index.js"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.101.0",

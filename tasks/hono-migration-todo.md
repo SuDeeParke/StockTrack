@@ -33,11 +33,11 @@
 ## Phase C · 系统服务（依赖 Phase B）
 
 - [x] **H-06** · Health + Admin + Scheduler：data-cache.ts + scheduler.ts + routes/admin.ts + 4 个测试用例
-- [ ] **H-07** · 生产构建：esbuild 打包 + Hono serveStatic + 单进程验证
+- [x] **H-07** · 生产构建：esbuild 打包 + Hono serveStatic + 单进程验证
 
 ### Phase C Checkpoint
-- [ ] `npm run build:full` 成功
-- [ ] 生产模式 `http://localhost:3000` 前端 + API 均可访问
+- [x] `npm run build:full` 成功
+- [x] 生产模式 `http://localhost:3000` 前端 + API 均可访问
 - [ ] Scheduler 日志显示两个 cron job 注册成功
 
 ---
