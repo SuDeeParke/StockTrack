@@ -1,47 +1,54 @@
 import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import ReactECharts from 'echarts-for-react'
+import { Loader2 } from 'lucide-react'
 import { api, type BacktestRequest, type BacktestResult } from '../api/client'
+import { Alert, AlertDescription } from '../components/ui/alert'
+import { Badge } from '../components/ui/badge'
+import { Button } from '../components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
+import { Input } from '../components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../components/ui/table'
 
 const CN_TICKERS = ['600519.SH', '000858.SZ', '300750.SZ', '601318.SH', '000001.SZ']
 const US_TICKERS = ['AAPL.US', 'TSLA.US', 'MSFT.US', 'NVDA.US', 'GOOGL.US']
 
-function StatCard({
-  label,
-  value,
-  color,
-}: {
-  label: string
-  value: string
-  color?: string
-}) {
+function getStatValueClass(color?: string) {
+  if (color === 'var(--color-buy)') return 'text-emerald-400'
+  if (color === 'var(--color-sell)') return 'text-rose-400'
+  return 'text-zinc-50'
+}
+
+function StatCard({ label, value, color }: { label: string; value: string; color?: string }) {
   return (
-    <div
-      className="rounded-lg p-4"
-      style={{
-        background: 'var(--color-surface)',
-        border: '1px solid var(--color-border)',
-      }}
-    >
-      <div className="mb-1 text-xs" style={{ color: 'var(--color-muted)' }}>
-        {label}
-      </div>
-      <div
-        className="font-mono text-xl font-bold"
-        style={{ color: color ?? 'var(--color-text)' }}
-      >
-        {value}
-      </div>
-    </div>
+    <Card className="border border-zinc-800 bg-zinc-900/60">
+      <CardHeader>
+        <CardTitle>{label}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className={`font-mono text-xl font-bold ${getStatValueClass(color)}`}>{value}</div>
+      </CardContent>
+    </Card>
   )
 }
 
 export default function Backtest() {
   const [strategyId, setStrategyId] = useState('')
-  const [selectedTickers, setSelectedTickers] = useState<string[]>([
-    '600519.SH',
-    '000858.SZ',
-  ])
+  const [selectedTickers, setSelectedTickers] = useState<string[]>(['600519.SH', '000858.SZ'])
   const [startDate, setStartDate] = useState('2022-01-01')
   const [endDate, setEndDate] = useState('2024-01-01')
   const [result, setResult] = useState<BacktestResult | null>(null)
@@ -71,23 +78,19 @@ export default function Backtest() {
     mutationFn: (req: BacktestRequest) => api.runBacktest(req),
     onSuccess: (data) => {
       setResult(data)
-
       if (data.status === 'RUNNING' || data.status === 'PENDING') {
         stopPolling()
         setPolling(true)
         pollingRef.current = window.setInterval(async () => {
           const nextResult = await api.getBacktestResult(data.job_id)
           setResult(nextResult)
-
           if (nextResult.status === 'DONE' || nextResult.status === 'FAILED') {
             stopPolling()
           }
         }, 500)
       }
     },
-    onError: () => {
-      stopPolling()
-    },
+    onError: () => stopPolling(),
   })
 
   useEffect(() => stopPolling, [])
@@ -96,13 +99,12 @@ export default function Backtest() {
 
   const toggleTicker = (ticker: string) => {
     setSelectedTickers((prev) =>
-      prev.includes(ticker) ? prev.filter((item) => item !== ticker) : [...prev, ticker],
+      prev.includes(ticker) ? prev.filter((t) => t !== ticker) : [...prev, ticker],
     )
   }
 
   const handleRun = () => {
     if (!strategyId || selectedTickers.length === 0) return
-
     stopPolling()
     setResult(null)
     mutation.mutate({
@@ -123,7 +125,7 @@ export default function Backtest() {
         },
         xAxis: {
           type: 'category',
-          data: result.equity_curve.map((point) => point.date),
+          data: result.equity_curve.map((p) => p.date),
           axisLabel: {
             color: '#64748b',
             interval: Math.max(0, Math.floor(result.equity_curve.length / 6)),
@@ -139,15 +141,15 @@ export default function Backtest() {
           {
             name: '策略净值',
             type: 'line',
-            data: result.equity_curve.map((point) => point.equity),
-            lineStyle: { color: '#00d2ff', width: 2 },
+            data: result.equity_curve.map((p) => p.equity),
+            lineStyle: { color: '#fafafa', width: 2 },
             symbol: 'none',
-            areaStyle: { color: '#00d2ff11' },
+            areaStyle: { color: '#fafafa11' },
           },
           {
             name: '基准',
             type: 'line',
-            data: result.equity_curve.map((point) => point.benchmark),
+            data: result.equity_curve.map((p) => p.benchmark),
             lineStyle: { color: '#64748b', width: 1, type: 'dashed' },
             symbol: 'none',
           },
@@ -155,139 +157,102 @@ export default function Backtest() {
       }
     : null
 
-  const inputStyle = {
-    width: '100%',
-    borderRadius: 6,
-    border: '1px solid var(--color-border)',
-    background: 'var(--color-surface)',
-    color: 'var(--color-text)',
-    padding: '6px 10px',
-    fontSize: 13,
-  }
-
   return (
     <div className="flex gap-6">
       <div className="flex w-64 flex-shrink-0 flex-col gap-4">
-        <h1 className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>
-          策略回测
-        </h1>
+        <h1 className="text-2xl font-bold text-zinc-50">策略回测</h1>
 
         <div>
-          <div className="mb-1 text-xs font-semibold" style={{ color: 'var(--color-muted)' }}>
-            策略
-          </div>
-          <select
-            value={strategyId}
-            onChange={(event) => setStrategyId(event.target.value)}
-            style={inputStyle}
-          >
-            {strategies.map((strategy) => (
-              <option key={strategy.id} value={strategy.id}>
-                {strategy.name}
-              </option>
-            ))}
-          </select>
+          <div className="mb-1 text-xs font-semibold text-zinc-500">策略</div>
+          <Select value={strategyId} onValueChange={setStrategyId}>
+            <SelectTrigger>
+              <SelectValue placeholder="选择策略" />
+            </SelectTrigger>
+            <SelectContent>
+              {strategies.map((s) => (
+                <SelectItem key={s.id} value={s.id}>
+                  {s.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           {strategyId && (
-            <div className="mt-1 text-xs" style={{ color: 'var(--color-muted)' }}>
-              {strategies.find((strategy) => strategy.id === strategyId)?.description}
+            <div className="mt-1 text-xs text-zinc-500">
+              {strategies.find((s) => s.id === strategyId)?.description}
             </div>
           )}
         </div>
 
         <div>
-          <div className="mb-1 text-xs font-semibold" style={{ color: 'var(--color-muted)' }}>
+          <div className="mb-1 text-xs font-semibold text-zinc-500">
             股票池（{selectedTickers.length} 只）
           </div>
           <div className="flex flex-wrap gap-1">
             {allTickers.map((ticker) => {
               const active = selectedTickers.includes(ticker)
-
               return (
-                <button
+                <Button
                   key={ticker}
+                  type="button"
+                  size="sm"
+                  variant={active ? 'secondary' : 'outline'}
                   onClick={() => toggleTicker(ticker)}
-                  className="rounded px-2 py-0.5 text-xs font-mono transition-colors"
-                  style={{
-                    background: active ? 'var(--color-primary)22' : 'var(--color-surface)',
-                    color: active ? 'var(--color-primary)' : 'var(--color-muted)',
-                    border: `1px solid ${
-                      active ? 'var(--color-primary)' : 'var(--color-border)'
-                    }`,
-                  }}
+                  className={`h-auto px-2 py-0.5 font-mono text-xs ${
+                    active
+                      ? 'border border-zinc-500 bg-zinc-800 text-zinc-50 hover:bg-zinc-700'
+                      : 'border-zinc-800 bg-transparent text-zinc-500 hover:text-zinc-300'
+                  }`}
                 >
                   {ticker}
-                </button>
+                </Button>
               )
             })}
           </div>
         </div>
 
         <div>
-          <div className="mb-1 text-xs font-semibold" style={{ color: 'var(--color-muted)' }}>
-            开始日期
-          </div>
-          <input
-            type="date"
-            value={startDate}
-            onChange={(event) => setStartDate(event.target.value)}
-            style={inputStyle}
-          />
+          <div className="mb-1 text-xs font-semibold text-zinc-500">开始日期</div>
+          <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
         </div>
 
         <div>
-          <div className="mb-1 text-xs font-semibold" style={{ color: 'var(--color-muted)' }}>
-            结束日期
-          </div>
-          <input
-            type="date"
-            value={endDate}
-            onChange={(event) => setEndDate(event.target.value)}
-            style={inputStyle}
-          />
+          <div className="mb-1 text-xs font-semibold text-zinc-500">结束日期</div>
+          <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
         </div>
 
-        <button
+        <Button
           onClick={handleRun}
           disabled={mutation.isPending || polling || selectedTickers.length === 0}
-          className="rounded py-2 text-sm font-semibold transition-opacity"
-          style={{
-            background: 'var(--color-primary)',
-            color: '#000',
-            opacity: mutation.isPending || polling ? 0.6 : 1,
-          }}
         >
-          {mutation.isPending || polling ? '运行中...' : '▶ 运行回测'}
-        </button>
+          {mutation.isPending || polling ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              运行中...
+            </>
+          ) : (
+            '▶ 运行回测'
+          )}
+        </Button>
       </div>
 
       <div className="flex flex-1 flex-col gap-4">
         {!result && !mutation.isPending && (
-          <div
-            className="flex flex-1 items-center justify-center"
-            style={{ color: 'var(--color-muted)' }}
-          >
+          <div className="flex flex-1 items-center justify-center text-zinc-500">
             选择策略和股票，点击「运行回测」
           </div>
         )}
 
         {(mutation.isPending || polling) && !result && (
-          <div className="flex items-center gap-2 p-4" style={{ color: 'var(--color-muted)' }}>
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+          <div className="flex items-center gap-2 p-4 text-zinc-500">
+            <Loader2 className="h-4 w-4 animate-spin" />
             正在运行回测...
           </div>
         )}
 
         {result?.status === 'FAILED' && (
-          <div
-            className="rounded p-4"
-            style={{
-              background: '#ef444422',
-              color: '#ef4444',
-              border: '1px solid #ef444444',
-            }}
-          >
-            回测失败：{result.error}
-          </div>
+          <Alert variant="destructive">
+            <AlertDescription>回测失败：{result.error}</AlertDescription>
+          </Alert>
         )}
 
         {result?.status === 'DONE' && result.stats && (
@@ -296,11 +261,7 @@ export default function Backtest() {
               <StatCard
                 label="总收益率"
                 value={`${result.stats.total_return_pct > 0 ? '+' : ''}${result.stats.total_return_pct.toFixed(2)}%`}
-                color={
-                  result.stats.total_return_pct >= 0
-                    ? 'var(--color-buy)'
-                    : 'var(--color-sell)'
-                }
+                color={result.stats.total_return_pct >= 0 ? 'var(--color-buy)' : 'var(--color-sell)'}
               />
               <StatCard
                 label="年化收益"
@@ -327,92 +288,57 @@ export default function Backtest() {
             </div>
 
             {equityOption && (
-              <div
-                className="rounded-lg p-4"
-                style={{
-                  background: 'var(--color-surface)',
-                  border: '1px solid var(--color-border)',
-                }}
-              >
-                <div className="mb-3 text-sm font-semibold" style={{ color: 'var(--color-muted)' }}>
-                  权益曲线
-                </div>
-                <ReactECharts option={equityOption} style={{ height: 280 }} theme="dark" />
-              </div>
+              <Card className="border border-zinc-800 bg-zinc-900/60 py-4">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold normal-case tracking-normal text-zinc-500">
+                    权益曲线
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ReactECharts className="h-[280px]" option={equityOption} theme="dark" />
+                </CardContent>
+              </Card>
             )}
 
-            <div
-              className="overflow-hidden rounded-lg"
-              style={{ border: '1px solid var(--color-border)' }}
-            >
-              <div
-                className="px-4 py-3 text-sm font-semibold"
-                style={{
-                  background: 'var(--color-surface)',
-                  color: 'var(--color-muted)',
-                  borderBottom: '1px solid var(--color-border)',
-                }}
-              >
-                交易记录（{result.trades.length} 笔）
-              </div>
-              <div className="max-h-64 overflow-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr
-                      style={{
-                        background: 'var(--color-surface)88',
-                        borderBottom: '1px solid var(--color-border)',
-                      }}
-                    >
-                      {['代码', '方向', '日期', '价格', '股数', '盈亏'].map((header) => (
-                        <th
-                          key={header}
-                          className="px-3 py-2 text-left font-semibold"
-                          style={{ color: 'var(--color-muted)' }}
-                        >
-                          {header}
-                        </th>
+            <Card className="overflow-hidden border border-zinc-800 bg-transparent">
+              <CardHeader className="border-b border-zinc-800 px-4 py-3">
+                <CardTitle className="text-sm font-semibold normal-case tracking-normal text-zinc-500">
+                  交易记录（{result.trades.length} 笔）
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="max-h-64 overflow-auto p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      {['代码', '方向', '日期', '价格', '股数', '盈亏'].map((h) => (
+                        <TableHead key={h}>{h}</TableHead>
                       ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[...result.trades].sort((a, b) => b.pnl - a.pnl).map((trade, index) => (
-                      <tr
-                        key={`${trade.ticker}-${trade.date}-${trade.action}-${index}`}
-                        style={{ borderBottom: '1px solid var(--color-border)22' }}
-                      >
-                        <td className="px-3 py-2 font-mono">{trade.ticker}</td>
-                        <td
-                          className="px-3 py-2 font-semibold"
-                          style={{
-                            color:
-                              trade.action === 'BUY'
-                                ? 'var(--color-buy)'
-                                : 'var(--color-sell)',
-                          }}
-                        >
-                          {trade.action === 'BUY' ? '买入' : '卖出'}
-                        </td>
-                        <td className="px-3 py-2" style={{ color: 'var(--color-muted)' }}>
-                          {trade.date}
-                        </td>
-                        <td className="px-3 py-2">{trade.price.toFixed(2)}</td>
-                        <td className="px-3 py-2">{trade.shares}</td>
-                        <td
-                          className="px-3 py-2 font-mono"
-                          style={{
-                            color: trade.pnl >= 0 ? 'var(--color-buy)' : 'var(--color-sell)',
-                          }}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {[...result.trades].sort((a, b) => b.pnl - a.pnl).map((trade, i) => (
+                      <TableRow key={`${trade.ticker}-${trade.date}-${trade.action}-${i}`}>
+                        <TableCell className="font-mono">{trade.ticker}</TableCell>
+                        <TableCell>
+                          <Badge variant={trade.action === 'BUY' ? 'buy' : 'sell'}>
+                            {trade.action === 'BUY' ? '买入' : '卖出'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-mono text-zinc-500">{trade.date}</TableCell>
+                        <TableCell className="font-mono">{trade.price.toFixed(2)}</TableCell>
+                        <TableCell>{trade.shares}</TableCell>
+                        <TableCell
+                          className={`font-mono ${trade.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}
                         >
                           {trade.pnl >= 0 ? '+' : ''}
                           {trade.pnl.toFixed(2)}
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
           </>
         )}
       </div>

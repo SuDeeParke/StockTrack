@@ -9,19 +9,13 @@ const NAV_ITEMS = [
 
 export default function Layout() {
   return (
-    <div className="flex min-h-screen" style={{ background: 'var(--color-bg)' }}>
-      <nav
-        className="w-52 flex-shrink-0 flex flex-col gap-1 border-r p-4"
-        style={{
-          background: 'var(--color-surface)',
-          borderColor: 'var(--color-border)',
-        }}
-      >
+    <div className="flex min-h-screen bg-zinc-950">
+      <nav className="w-52 flex-shrink-0 flex flex-col gap-1 border-r border-zinc-800 p-4">
         <div className="mb-6 px-2">
-          <span className="text-lg font-bold" style={{ color: 'var(--color-primary)' }}>
+          <span className="font-mono text-lg font-bold text-zinc-50">
             StockTrack
           </span>
-          <div className="mt-0.5 text-xs" style={{ color: 'var(--color-muted)' }}>
+          <div className="mt-0.5 text-xs text-zinc-500">
             量化交易指挥台
           </div>
         </div>
@@ -32,22 +26,19 @@ export default function Layout() {
               to={to}
               end={to === '/'}
               className={({ isActive }) =>
-                `rounded px-3 py-2 text-sm transition-colors ${
-                  isActive ? 'font-semibold' : 'hover:opacity-80'
+                `relative flex items-center rounded-sm px-3 py-2 text-sm transition-colors ${
+                  isActive
+                    ? 'text-zinc-50 font-medium before:absolute before:left-0 before:top-1 before:bottom-1 before:w-0.5 before:rounded-full before:bg-zinc-50'
+                    : 'text-zinc-500 hover:text-zinc-300'
                 }`
               }
-              style={({ isActive }) => ({
-                background: isActive ? 'var(--color-primary)22' : 'transparent',
-                color: isActive ? 'var(--color-primary)' : 'var(--color-text)',
-              })}
             >
               {label}
             </NavLink>
           ) : (
             <span
               key={to}
-              className="cursor-not-allowed rounded px-3 py-2 text-sm"
-              style={{ color: 'var(--color-muted)' }}
+              className="cursor-not-allowed rounded-sm px-3 py-2 text-sm text-zinc-700"
             >
               {label}
             </span>

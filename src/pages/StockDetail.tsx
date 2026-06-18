@@ -3,8 +3,18 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import ReactECharts from 'echarts-for-react'
 import { api } from '../api/client'
+import { Badge } from '../components/ui/badge'
+import { Separator } from '../components/ui/separator'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs'
+import { Skeleton } from '../components/ui/skeleton'
 
 type IndicatorTab = 'macd' | 'rsi' | 'boll'
+
+const SIGNAL_LABELS: Record<string, string> = {
+  BUY: '买入',
+  SELL: '卖出',
+  WATCH: '观察',
+}
 
 export default function StockDetail() {
   const { ticker = '' } = useParams<{ ticker: string }>()
@@ -80,8 +90,8 @@ export default function StockDetail() {
         height: 20,
         bottom: 5,
         borderColor: '#2a2d3e',
-        fillerColor: '#00d2ff22',
-        handleStyle: { color: '#00d2ff' },
+        fillerColor: '#ffffff22',
+        handleStyle: { color: '#fafafa' },
         textStyle: { color: '#64748b' },
       },
     ],
@@ -129,15 +139,13 @@ export default function StockDetail() {
             name: 'MACD',
             type: 'bar',
             data: [indicators.macd_hist ?? 0],
-            itemStyle: {
-              color: (indicators.macd_hist ?? 0) >= 0 ? upColor : downColor,
-            },
+            itemStyle: { color: (indicators.macd_hist ?? 0) >= 0 ? upColor : downColor },
           },
           {
             name: 'DIF',
             type: 'line',
             data: [indicators.macd ?? 0],
-            lineStyle: { color: '#00d2ff' },
+            lineStyle: { color: '#fafafa' },
             symbol: 'none',
           },
           {
@@ -171,19 +179,13 @@ export default function StockDetail() {
             name: 'RSI(14)',
             type: 'line',
             data: [indicators.rsi ?? 50],
-            lineStyle: { color: '#00d2ff', width: 2 },
+            lineStyle: { color: '#fafafa', width: 2 },
             symbol: 'circle',
             symbolSize: 6,
             markLine: {
               data: [
-                {
-                  yAxis: 70,
-                  lineStyle: { color: '#ef4444', type: 'dashed' },
-                },
-                {
-                  yAxis: 30,
-                  lineStyle: { color: '#22c55e', type: 'dashed' },
-                },
+                { yAxis: 70, lineStyle: { color: '#ef4444', type: 'dashed' } },
+                { yAxis: 30, lineStyle: { color: '#22c55e', type: 'dashed' } },
               ],
               label: { color: '#64748b' },
             },
@@ -192,163 +194,98 @@ export default function StockDetail() {
       }
     : null
 
-  const SIGNAL_COLORS: Record<string, string> = {
-    BUY: 'var(--color-buy)',
-    SELL: 'var(--color-sell)',
-    WATCH: 'var(--color-watch)',
-  }
-  const SIGNAL_LABELS: Record<string, string> = {
-    BUY: '买入',
-    SELL: '卖出',
-    WATCH: '观察',
-  }
-
-  const TABS: { key: IndicatorTab; label: string }[] = [
-    { key: 'macd', label: 'MACD' },
-    { key: 'rsi', label: 'RSI' },
-  ]
-
   return (
     <div>
       <div className="mb-6 flex items-center gap-3">
         <button
           onClick={() => navigate(-1)}
-          className="text-sm opacity-60 transition-opacity hover:opacity-100"
-          style={{ color: 'var(--color-muted)' }}
+          className="text-sm text-zinc-500 opacity-60 transition-opacity hover:opacity-100"
         >
           ← 返回
         </button>
-        <h1
-          className="font-mono text-2xl font-bold"
-          style={{ color: 'var(--color-primary)' }}
-        >
-          {ticker}
-        </h1>
-        <span
-          className="rounded px-2 py-0.5 text-xs font-semibold"
-          style={{
-            background: isUS ? '#3b82f622' : '#ef444422',
-            color: isUS ? '#3b82f6' : '#ef4444',
-          }}
-        >
-          {isUS ? '美股' : '沪深'}
-        </span>
+        <h1 className="font-mono text-2xl font-bold text-zinc-50">{ticker}</h1>
+        <Badge variant={isUS ? 'us' : 'cn'}>{isUS ? '美股' : '沪深'}</Badge>
         {latestSignal && (
-          <span
-            className="rounded px-2 py-0.5 text-xs font-semibold"
-            style={{
-              background: `${SIGNAL_COLORS[latestSignal.signal_type]}22`,
-              color: SIGNAL_COLORS[latestSignal.signal_type],
-            }}
+          <Badge
+            variant={
+              latestSignal.signal_type === 'BUY'
+                ? 'buy'
+                : latestSignal.signal_type === 'SELL'
+                  ? 'sell'
+                  : 'watch'
+            }
           >
             {SIGNAL_LABELS[latestSignal.signal_type]}
+          </Badge>
+        )}
+        {latestSignal && (
+          <span className="font-mono text-lg font-semibold text-zinc-50">
+            {latestSignal.price.toFixed(2)}
           </span>
         )}
-        {latestSignal && <span className="text-lg font-semibold">{latestSignal.price.toFixed(2)}</span>}
       </div>
 
-      <div
-        className="mb-4 rounded-lg p-4"
-        style={{
-          background: 'var(--color-surface)',
-          border: '1px solid var(--color-border)',
-        }}
-      >
-        <div
-          className="mb-3 text-sm font-semibold"
-          style={{ color: 'var(--color-muted)' }}
-        >
-          K 线 · 90 天
-        </div>
+      <div className="mb-4 py-2">
+        <div className="mb-3 text-sm font-semibold text-zinc-500">K 线 · 90 天</div>
         {ohlcvLoading ? (
-          <div
-            className="h-64 animate-pulse rounded"
-            style={{ background: 'var(--color-border)' }}
-          />
+          <Skeleton className="h-64 w-full" />
         ) : ohlcv.length > 0 ? (
-          <ReactECharts option={klineOption} style={{ height: 340 }} theme="dark" />
+          <ReactECharts option={klineOption} className="h-[340px]" theme="dark" />
         ) : (
-          <div
-            className="flex h-64 items-center justify-center"
-            style={{ color: 'var(--color-muted)' }}
-          >
-            暂无 K 线数据
-          </div>
+          <div className="flex h-64 items-center justify-center text-zinc-500">暂无 K 线数据</div>
         )}
       </div>
 
-      <div
-        className="mb-4 rounded-lg p-4"
-        style={{
-          background: 'var(--color-surface)',
-          border: '1px solid var(--color-border)',
-        }}
-      >
-        <div className="mb-4 flex gap-2">
-          {TABS.map((t) => (
-            <button
-              key={t.key}
-              onClick={() => setActiveTab(t.key)}
-              className="rounded px-3 py-1 text-sm transition-colors"
-              style={{
-                background: activeTab === t.key ? 'var(--color-primary)' : 'transparent',
-                color: activeTab === t.key ? '#000' : 'var(--color-muted)',
-                border: `1px solid ${
-                  activeTab === t.key ? 'var(--color-primary)' : 'var(--color-border)'
-                }`,
-              }}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-        {!indicators ? (
-          <div
-            className="flex h-32 items-center justify-center"
-            style={{ color: 'var(--color-muted)' }}
-          >
-            暂无指标数据
-          </div>
-        ) : activeTab === 'macd' && macdOption ? (
-          <ReactECharts option={macdOption} style={{ height: 180 }} theme="dark" />
-        ) : activeTab === 'rsi' && rsiOption ? (
-          <ReactECharts option={rsiOption} style={{ height: 180 }} theme="dark" />
-        ) : null}
+      <Separator className="my-4" />
+
+      <div className="mb-4 py-2">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as IndicatorTab)}>
+          <TabsList>
+            <TabsTrigger value="macd">MACD</TabsTrigger>
+            <TabsTrigger value="rsi">RSI</TabsTrigger>
+          </TabsList>
+          <TabsContent value="macd">
+            {!indicators ? (
+              <div className="flex h-32 items-center justify-center text-zinc-500">暂无指标数据</div>
+            ) : macdOption ? (
+              <ReactECharts option={macdOption} className="h-[180px]" theme="dark" />
+            ) : null}
+          </TabsContent>
+          <TabsContent value="rsi">
+            {!indicators ? (
+              <div className="flex h-32 items-center justify-center text-zinc-500">暂无指标数据</div>
+            ) : rsiOption ? (
+              <ReactECharts option={rsiOption} className="h-[180px]" theme="dark" />
+            ) : null}
+          </TabsContent>
+        </Tabs>
       </div>
 
-      <div
-        className="rounded-lg p-4"
-        style={{
-          background: 'var(--color-surface)',
-          border: '1px solid var(--color-border)',
-        }}
-      >
-        <div
-          className="mb-3 text-sm font-semibold"
-          style={{ color: 'var(--color-muted)' }}
-        >
-          信号历史
-        </div>
+      <Separator className="my-4" />
+
+      <div className="py-2">
+        <div className="mb-3 text-sm font-semibold text-zinc-500">信号历史</div>
         {signalHistory.length === 0 ? (
-          <div className="text-sm" style={{ color: 'var(--color-muted)' }}>
-            暂无信号记录
-          </div>
+          <div className="text-sm text-zinc-500">暂无信号记录</div>
         ) : (
           <div className="flex flex-col gap-2">
             {signalHistory.map((sig, i) => (
               <div key={i} className="flex items-center gap-3 text-sm">
-                <span style={{ color: 'var(--color-muted)' }}>{sig.date}</span>
-                <span
-                  className="font-semibold"
-                  style={{ color: SIGNAL_COLORS[sig.signal_type] }}
+                <span className="font-mono text-zinc-500">{sig.date}</span>
+                <Badge
+                  variant={
+                    sig.signal_type === 'BUY'
+                      ? 'buy'
+                      : sig.signal_type === 'SELL'
+                        ? 'sell'
+                        : 'watch'
+                  }
                 >
                   {SIGNAL_LABELS[sig.signal_type]}
-                </span>
-                <span>{sig.price.toFixed(2)}</span>
+                </Badge>
+                <span className="font-mono text-zinc-50">{sig.price.toFixed(2)}</span>
                 {sig.indicators.rsi !== undefined && (
-                  <span style={{ color: 'var(--color-muted)' }}>
-                    RSI {sig.indicators.rsi.toFixed(1)}
-                  </span>
+                  <span className="text-zinc-500">RSI {sig.indicators.rsi.toFixed(1)}</span>
                 )}
               </div>
             ))}

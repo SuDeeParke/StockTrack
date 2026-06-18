@@ -1,7 +1,22 @@
-import { useState } from 'react'
+import { useState, type MouseEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { ArrowUpDown } from 'lucide-react'
 import { api, type Market, type SignalType } from '../api/client'
+import { Button } from '../components/ui/button'
+import { Badge } from '../components/ui/badge'
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '../components/ui/table'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
+import { Skeleton } from '../components/ui/skeleton'
+import { Alert, AlertDescription } from '../components/ui/alert'
+import { cn } from '../lib/utils'
 
 type SortKey = 'date' | 'rsi' | 'price'
 
@@ -11,12 +26,6 @@ const MARKET_TABS: { label: string; value: Market }[] = [
   { label: '美股', value: 'US' },
 ]
 
-const SIGNAL_COLORS: Record<string, string> = {
-  BUY: 'var(--color-buy)',
-  SELL: 'var(--color-sell)',
-  WATCH: 'var(--color-watch)',
-}
-
 const SIGNAL_LABELS: Record<string, string> = {
   BUY: '买入',
   SELL: '卖出',
@@ -24,18 +33,51 @@ const SIGNAL_LABELS: Record<string, string> = {
 }
 
 const ORDERABLE_SIGNAL_TYPES: SignalType[] = ['BUY', 'SELL']
+const SKELETON_OPACITY_CLASSES = [
+  'opacity-100',
+  'opacity-85',
+  'opacity-70',
+  'opacity-55',
+  'opacity-40',
+]
 
 function MarketBadge({ market }: { market: string }) {
   return (
-    <span
-      className="rounded px-2 py-0.5 text-xs font-semibold"
-      style={{
-        background: market === 'CN' ? '#ef444422' : '#3b82f622',
-        color: market === 'CN' ? '#ef4444' : '#3b82f6',
-      }}
-    >
+    <Badge variant={market === 'CN' ? 'cn' : 'us'}>
       {market === 'CN' ? '沪深' : '美股'}
-    </span>
+    </Badge>
+  )
+}
+
+function SignalBadge({ type }: { type: string }) {
+  const variant = type === 'BUY' ? 'buy' : type === 'SELL' ? 'sell' : 'watch'
+  return (
+    <Badge variant={variant as 'buy' | 'sell' | 'watch'}>
+      {SIGNAL_LABELS[type] ?? type}
+    </Badge>
+  )
+}
+
+function RsiCell({ rsi }: { rsi?: number }) {
+  if (rsi === undefined) return <span className="text-zinc-600">—</span>
+
+  const cls =
+    rsi > 70
+      ? 'text-rose-400'
+      : rsi < 30
+        ? 'text-emerald-400'
+        : 'text-zinc-300'
+
+  return <span className={cn('font-mono', cls)}>{rsi.toFixed(1)}</span>
+}
+
+function SkeletonTable() {
+  return (
+    <div className="overflow-hidden rounded-lg border border-zinc-800">
+      {SKELETON_OPACITY_CLASSES.map((opacityClass) => (
+        <Skeleton key={opacityClass} className={cn('h-12 w-full rounded-none', opacityClass)} />
+      ))}
+    </div>
   )
 }
 
@@ -69,17 +111,15 @@ export default function Dashboard() {
   })
 
   const handleSort = (key: SortKey) => {
-    if (sortKey === key) setSortAsc((ascending) => !ascending)
+    if (sortKey === key) setSortAsc((asc) => !asc)
     else {
       setSortKey(key)
       setSortAsc(false)
     }
   }
 
-  const SortIcon = ({ k }: { k: SortKey }) => (sortKey === k ? (sortAsc ? ' ↑' : ' ↓') : '')
-
   const handleTrade = (
-    event: React.MouseEvent<HTMLButtonElement>,
+    event: MouseEvent<HTMLButtonElement>,
     ticker: string,
     side: 'BUY' | 'SELL',
   ) => {
@@ -90,197 +130,137 @@ export default function Dashboard() {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>
-          信号看板
-        </h1>
+        <h1 className="text-2xl font-bold text-zinc-50">信号看板</h1>
         {dataUpdatedAt > 0 && (
-          <span className="text-xs" style={{ color: 'var(--color-muted)' }}>
+          <span className="text-xs text-zinc-500">
             更新于 {new Date(dataUpdatedAt).toLocaleTimeString('zh-CN')}
           </span>
         )}
       </div>
 
       {hasStale && (
-        <div
-          className="mb-4 rounded px-4 py-2 text-sm"
-          style={{
-            background: '#f59e0b22',
-            color: 'var(--color-watch)',
-            border: '1px solid #f59e0b44',
-          }}
-        >
-          ⚠️ 部分数据未及时更新，显示最近已知数据
-        </div>
+        <Alert variant="warning" className="mb-4">
+          <AlertDescription>⚠️ 部分数据未及时更新，显示最近已知数据</AlertDescription>
+        </Alert>
       )}
 
-      <div className="mb-4 flex gap-2">
-        {MARKET_TABS.map((tab) => (
-          <button
-            key={tab.value}
-            onClick={() => setMarket(tab.value)}
-            className="rounded px-4 py-1.5 text-sm transition-colors"
-            style={{
-              background: market === tab.value ? 'var(--color-primary)' : 'var(--color-surface)',
-              color: market === tab.value ? '#000' : 'var(--color-text)',
-              border: `1px solid ${market === tab.value ? 'var(--color-primary)' : 'var(--color-border)'}`,
-            }}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      <Tabs
+        value={market}
+        onValueChange={(value) => setMarket(value as Market)}
+        className="w-full"
+      >
+        <TabsList className="mb-4 w-auto">
+          {MARKET_TABS.map((tab) => (
+            <TabsTrigger key={tab.value} value={tab.value}>
+              {tab.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
 
-      {isLoading ? (
-        <SkeletonTable />
-      ) : isError ? (
-        <div className="rounded p-4" style={{ background: '#ef444422', color: '#ef4444' }}>
-          加载失败，请检查后端服务是否启动
-        </div>
-      ) : (
-        <div className="overflow-x-auto rounded-lg" style={{ border: '1px solid var(--color-border)' }}>
-          <table className="w-full text-sm">
-            <thead>
-              <tr
-                style={{
-                  background: 'var(--color-surface)',
-                  borderBottom: '1px solid var(--color-border)',
-                }}
-              >
-                <Th>股票代码</Th>
-                <Th>市场</Th>
-                <Th>信号</Th>
-                <Th onClick={() => handleSort('date')} sortable>
-                  日期{SortIcon({ k: 'date' })}
-                </Th>
-                <Th onClick={() => handleSort('price')} sortable>
-                  价格{SortIcon({ k: 'price' })}
-                </Th>
-                <Th>MACD</Th>
-                <Th onClick={() => handleSort('rsi')} sortable>
-                  RSI{SortIcon({ k: 'rsi' })}
-                </Th>
-                <Th>操作</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {sorted.map((sig, index) => (
-                <tr
-                  key={sig.ticker + sig.date}
-                  onClick={() => navigate(`/stock/${sig.ticker}`)}
-                  className="cursor-pointer transition-colors"
-                  style={{
-                    background: index % 2 === 0 ? 'transparent' : 'var(--color-surface)44',
-                    borderBottom: '1px solid var(--color-border)',
-                  }}
-                  onMouseEnter={(event) => {
-                    event.currentTarget.style.background = 'var(--color-primary)11'
-                  }}
-                  onMouseLeave={(event) => {
-                    event.currentTarget.style.background =
-                      index % 2 === 0 ? 'transparent' : 'var(--color-surface)44'
-                  }}
-                >
-                  <td className="px-4 py-3 font-mono font-semibold">{sig.ticker}</td>
-                  <td className="px-4 py-3">
-                    <MarketBadge market={sig.market} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="font-semibold" style={{ color: SIGNAL_COLORS[sig.signal_type] }}>
-                      {SIGNAL_LABELS[sig.signal_type] ?? sig.signal_type}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3" style={{ color: 'var(--color-muted)' }}>
-                    {sig.date}
-                  </td>
-                  <td className="px-4 py-3">{sig.price.toFixed(2)}</td>
-                  <td className="px-4 py-3" style={{ color: 'var(--color-muted)' }}>
-                    {sig.indicators.macd?.toFixed(2) ?? '—'}
-                  </td>
-                  <td className="px-4 py-3">
-                    <RsiCell rsi={sig.indicators.rsi} />
-                  </td>
-                  <td className="px-4 py-3">
-                    {ORDERABLE_SIGNAL_TYPES.includes(sig.signal_type) ? (
-                      <button
-                        type="button"
-                        className="rounded px-3 py-1 text-xs font-semibold transition-colors hover:opacity-85"
-                        style={{
-                          background:
-                            sig.signal_type === 'BUY'
-                              ? 'var(--color-buy)'
-                              : 'var(--color-sell)',
-                          color: '#000',
-                        }}
-                        onClick={(event) =>
-                          handleTrade(event, sig.ticker, sig.signal_type as 'BUY' | 'SELL')
-                        }
+        <TabsContent value={market} className="mt-0">
+          {isLoading ? (
+            <SkeletonTable />
+          ) : isError ? (
+            <Alert variant="destructive">
+              <AlertDescription>加载失败，请检查后端服务是否启动</AlertDescription>
+            </Alert>
+          ) : (
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>股票代码</TableHead>
+                    <TableHead>市场</TableHead>
+                    <TableHead>信号</TableHead>
+                    <TableHead>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-auto p-0 text-xs font-medium uppercase tracking-wider text-zinc-500"
+                        onClick={() => handleSort('date')}
                       >
-                        下单
-                      </button>
-                    ) : (
-                      <span className="text-xs" style={{ color: 'var(--color-muted)' }}>
-                        —
-                      </span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {sorted.length === 0 && (
-            <div className="p-8 text-center" style={{ color: 'var(--color-muted)' }}>
-              暂无信号数据
-            </div>
+                        日期 <ArrowUpDown className="ml-1 h-3 w-3" />
+                      </Button>
+                    </TableHead>
+                    <TableHead>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-auto p-0 text-xs font-medium uppercase tracking-wider text-zinc-500"
+                        onClick={() => handleSort('price')}
+                      >
+                        价格 <ArrowUpDown className="ml-1 h-3 w-3" />
+                      </Button>
+                    </TableHead>
+                    <TableHead>MACD</TableHead>
+                    <TableHead>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-auto p-0 text-xs font-medium uppercase tracking-wider text-zinc-500"
+                        onClick={() => handleSort('rsi')}
+                      >
+                        RSI <ArrowUpDown className="ml-1 h-3 w-3" />
+                      </Button>
+                    </TableHead>
+                    <TableHead>操作</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sorted.map((sig) => (
+                    <TableRow
+                      key={sig.ticker + sig.date}
+                      onClick={() => navigate(`/stock/${sig.ticker}`)}
+                      className="cursor-pointer"
+                    >
+                      <TableCell className="font-mono font-semibold text-zinc-50">
+                        {sig.ticker}
+                      </TableCell>
+                      <TableCell>
+                        <MarketBadge market={sig.market} />
+                      </TableCell>
+                      <TableCell>
+                        <SignalBadge type={sig.signal_type} />
+                      </TableCell>
+                      <TableCell className="font-mono text-zinc-500">{sig.date}</TableCell>
+                      <TableCell className="font-mono">{sig.price.toFixed(2)}</TableCell>
+                      <TableCell className="font-mono text-zinc-500">
+                        {sig.indicators.macd?.toFixed(2) ?? '—'}
+                      </TableCell>
+                      <TableCell>
+                        <RsiCell rsi={sig.indicators.rsi} />
+                      </TableCell>
+                      <TableCell>
+                        {ORDERABLE_SIGNAL_TYPES.includes(sig.signal_type) ? (
+                          <Button
+                            size="sm"
+                            variant={sig.signal_type === 'BUY' ? 'default' : 'destructive'}
+                            className={
+                              sig.signal_type === 'BUY'
+                                ? 'bg-emerald-500 text-zinc-950 hover:bg-emerald-500/90'
+                                : undefined
+                            }
+                            onClick={(event) =>
+                              handleTrade(event, sig.ticker, sig.signal_type as 'BUY' | 'SELL')
+                            }
+                          >
+                            下单
+                          </Button>
+                        ) : (
+                          <span className="text-xs text-zinc-600">—</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              {sorted.length === 0 && (
+                <div className="p-8 text-center text-zinc-500">暂无信号数据</div>
+              )}
+            </>
           )}
-        </div>
-      )}
-    </div>
-  )
-}
-
-function Th({
-  children,
-  onClick,
-  sortable,
-}: {
-  children: React.ReactNode
-  onClick?: () => void
-  sortable?: boolean
-}) {
-  return (
-    <th
-      className={`px-4 py-3 text-left font-semibold ${sortable ? 'cursor-pointer select-none hover:opacity-80' : ''}`}
-      style={{ color: 'var(--color-muted)' }}
-      onClick={onClick}
-    >
-      {children}
-    </th>
-  )
-}
-
-function RsiCell({ rsi }: { rsi?: number }) {
-  if (rsi === undefined) return <span style={{ color: 'var(--color-muted)' }}>—</span>
-
-  const color =
-    rsi > 70 ? 'var(--color-sell)' : rsi < 30 ? 'var(--color-buy)' : 'var(--color-text)'
-
-  return <span style={{ color }}>{rsi.toFixed(1)}</span>
-}
-
-function SkeletonTable() {
-  return (
-    <div className="overflow-hidden rounded-lg" style={{ border: '1px solid var(--color-border)' }}>
-      {[...Array(5)].map((_, index) => (
-        <div
-          key={index}
-          className="h-12 animate-pulse"
-          style={{
-            background: 'var(--color-surface)',
-            borderBottom: '1px solid var(--color-border)',
-            opacity: 1 - index * 0.15,
-          }}
-        />
-      ))}
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
