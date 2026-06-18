@@ -6,7 +6,7 @@ from typing import Literal
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import signals
+from app.routers import backtest, signals
 from app.scheduler import refresh_cn, refresh_us, start_scheduler, stop_scheduler
 from app.services import data_cache
 
@@ -30,6 +30,7 @@ app.add_middleware(
 )
 
 app.include_router(signals.router)
+app.include_router(backtest.router)
 
 
 @app.get("/api/health")
