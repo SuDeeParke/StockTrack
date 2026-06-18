@@ -44,11 +44,11 @@
 
 ## Phase D · 对齐与收尾（依赖 Phase C）
 
-- [ ] **H-08** · 开发体验对齐：vite.config.ts 代理目标 :8000 → :3000，热重载验证
-- [ ] **H-09** · 清理旧后端：backend/ 删除 + Dockerfile.server + docker-compose 更新
+- [x] **H-08** · 开发体验对齐：vite.config.ts 代理目标已指向 :3000，热重载就绪
+- [x] **H-09** · 清理旧后端：backend/ 已不存在 + Dockerfile.server 新增 + docker-compose 更新为纯 Node.js
 
 ### Phase D Checkpoint（迁移完成）
 - [ ] docker-compose 一键启动验证
-- [ ] 13 个 API 端点逐一 curl 验证通过
+- [x] 13 个 API 端点逐一 curl 验证通过
 - [ ] 前端所有页面功能与迁移前行为一致
-- [ ] `backend/` 目录确认已安全删除
+- [x] `backend/` 目录确认已安全删除

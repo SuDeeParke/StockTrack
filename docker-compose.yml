@@ -1,55 +1,15 @@
 version: "3.9"
 
 services:
-  db:
-    image: mysql:5.7
-    restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASS:-stocktrack}
-      MYSQL_DATABASE: ${DB_NAME:-stocktrack}
-    ports:
-      - "3306:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    ports:
-      - "8000:8000"
-    environment:
-      DB_HOST: db
-      DB_PORT: 3306
-      DB_NAME: ${DB_NAME:-stocktrack}
-      DB_USER: ${DB_USER:-root}
-      DB_PASS: ${DB_PASS:-stocktrack}
-    depends_on:
-      db:
-        condition: service_healthy
-    volumes:
-      - ./backend:/app
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-
-  frontend:
+  server:
     build:
       context: .
-      dockerfile: Dockerfile.frontend
+      dockerfile: Dockerfile.server
     restart: unless-stopped
     ports:
-      - "5173:5173"
-    volumes:
-      - .:/app
-      - /app/node_modules
+      - "3000:3000"
     environment:
-      - VITE_API_BASE_URL=http://localhost:8000
-    command: npm run dev -- --host 0.0.0.0
+      PORT: 3000
 
 volumes:
-  mysql_data:
+  {}

@@ -1,0 +1,20 @@
+FROM node:20-slim
+
+WORKDIR /app
+
+# Install frontend deps + build
+COPY package*.json ./
+RUN npm ci
+
+# Install server deps
+COPY server/package*.json ./server/
+RUN cd server && npm ci
+
+# Copy source
+COPY . .
+
+# Build frontend + server
+RUN npm run build:full
+
+EXPOSE 3000
+CMD ["node", "server/dist/index.js"]

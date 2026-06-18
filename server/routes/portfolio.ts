@@ -35,6 +35,11 @@ portfolioRouter.get('/api/portfolio/orders/:orderId', (c) => {
   return c.json(order)
 })
 
+portfolioRouter.post('/api/portfolio/risk-check', zValidator('json', orderBody), (c) => {
+  const req = c.req.valid('json')
+  return c.json(checkRisk(req))
+})
+
 portfolioRouter.post('/api/portfolio/orders', zValidator('json', orderBody), (c) => {
   const req = c.req.valid('json')
   const risk = checkRisk(req)
