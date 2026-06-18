@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { api, type Market } from '../api/client'
+import { api, type Market, type SignalType } from '../api/client'
 
 type SortKey = 'date' | 'rsi' | 'price'
 
@@ -22,6 +22,8 @@ const SIGNAL_LABELS: Record<string, string> = {
   SELL: '卖出',
   WATCH: '观察',
 }
+
+const ORDERABLE_SIGNAL_TYPES: SignalType[] = ['BUY', 'SELL']
 
 function MarketBadge({ market }: { market: string }) {
   return (
@@ -75,6 +77,15 @@ export default function Dashboard() {
   }
 
   const SortIcon = ({ k }: { k: SortKey }) => (sortKey === k ? (sortAsc ? ' ↑' : ' ↓') : '')
+
+  const handleTrade = (
+    event: React.MouseEvent<HTMLButtonElement>,
+    ticker: string,
+    side: 'BUY' | 'SELL',
+  ) => {
+    event.stopPropagation()
+    navigate(`/trade?ticker=${encodeURIComponent(ticker)}&side=${side}`)
+  }
 
   return (
     <div>
@@ -148,6 +159,7 @@ export default function Dashboard() {
                 <Th onClick={() => handleSort('rsi')} sortable>
                   RSI{SortIcon({ k: 'rsi' })}
                 </Th>
+                <Th>操作</Th>
               </tr>
             </thead>
             <tbody>
@@ -186,6 +198,30 @@ export default function Dashboard() {
                   </td>
                   <td className="px-4 py-3">
                     <RsiCell rsi={sig.indicators.rsi} />
+                  </td>
+                  <td className="px-4 py-3">
+                    {ORDERABLE_SIGNAL_TYPES.includes(sig.signal_type) ? (
+                      <button
+                        type="button"
+                        className="rounded px-3 py-1 text-xs font-semibold transition-colors hover:opacity-85"
+                        style={{
+                          background:
+                            sig.signal_type === 'BUY'
+                              ? 'var(--color-buy)'
+                              : 'var(--color-sell)',
+                          color: '#000',
+                        }}
+                        onClick={(event) =>
+                          handleTrade(event, sig.ticker, sig.signal_type as 'BUY' | 'SELL')
+                        }
+                      >
+                        下单
+                      </button>
+                    ) : (
+                      <span className="text-xs" style={{ color: 'var(--color-muted)' }}>
+                        —
+                      </span>
+                    )}
                   </td>
                 </tr>
               ))}

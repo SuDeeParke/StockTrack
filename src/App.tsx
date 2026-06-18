@@ -4,6 +4,7 @@ import Layout from './components/Layout'
 import Dashboard from './pages/Dashboard'
 import Backtest from './pages/Backtest'
 import StockDetail from './pages/StockDetail'
+import Trade from './pages/Trade'
 import './index.css'
 
 const queryClient = new QueryClient({
@@ -23,6 +24,7 @@ export default function App() {
           <Route path="/" element={<Layout />}>
             <Route index element={<Dashboard />} />
             <Route path="backtest" element={<Backtest />} />
+            <Route path="trade" element={<Trade />} />
             <Route path="stock/:ticker" element={<StockDetail />} />
           </Route>
         </Routes>

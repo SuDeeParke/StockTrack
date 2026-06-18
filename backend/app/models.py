@@ -117,3 +117,67 @@ class BacktestResult(BaseModel):
     stats: Optional[BacktestStats] = None
     error: Optional[str] = None
     created_at: str = ""
+
+
+# ── Portfolio / Trade models ──────────────────────────────────────
+
+class OrderSide(str, Enum):
+    BUY = "BUY"
+    SELL = "SELL"
+
+
+class OrderStatus(str, Enum):
+    PENDING = "PENDING"
+    FILLED = "FILLED"
+    CANCELLED = "CANCELLED"
+    REJECTED = "REJECTED"
+
+
+class Position(BaseModel):
+    ticker: str
+    market: Literal["CN", "US"]
+    name: str
+    qty: float
+    avg_cost: float
+    current_price: float
+    market_value: float
+    pnl: float
+    pnl_pct: float
+
+
+class AccountBalance(BaseModel):
+    total_assets: float
+    cash: float
+    market_value: float
+    daily_pnl: float
+    daily_pnl_pct: float
+
+
+class OrderRequest(BaseModel):
+    ticker: str
+    market: Literal["CN", "US"]
+    side: OrderSide
+    qty: float
+    price: float
+    paper_trade: bool = True
+
+
+class Order(BaseModel):
+    order_id: str
+    ticker: str
+    market: Literal["CN", "US"]
+    side: OrderSide
+    qty: float
+    price: float
+    status: OrderStatus
+    filled_qty: float = 0.0
+    filled_price: float = 0.0
+    created_at: str
+    updated_at: str
+    reject_reason: Optional[str] = None
+    paper_trade: bool = True
+
+
+class RiskCheckResult(BaseModel):
+    passed: bool
+    reason: Optional[str] = None
