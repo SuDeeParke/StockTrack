@@ -3,6 +3,8 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { logger } from 'hono/logger'
 import { fileURLToPath } from 'node:url'
+import { signalsRouter } from './routes/signals.js'
+import { backtestRouter } from './routes/backtest.js'
 
 const app = new Hono()
 
@@ -12,6 +14,9 @@ app.use('*', cors({ origin: ['http://localhost:5173'] }))
 app.get('/api/health', (c) => {
   return c.json({ status: 'ok', version: '0.1.0', last_refresh: null })
 })
+
+app.route('/', signalsRouter)
+app.route('/', backtestRouter)
 
 const PORT = Number(process.env.PORT) || 3000
 

@@ -19,8 +19,8 @@
 
 ## Phase B · 业务切片（依赖 H-01、H-02，三个切片可并行）
 
-- [ ] **H-03** · Signals 切片：signals-mock.ts + routes/signals.ts + 7 个测试用例
-- [ ] **H-04** · Backtest 切片：backtest-engine.ts + routes/backtest.ts + 6 个测试用例
+- [x] **H-03** · Signals 切片：signals-mock.ts + routes/signals.ts + 7 个测试用例
+- [x] **H-04** · Backtest 切片：backtest-engine.ts + routes/backtest.ts + 6 个测试用例
 - [ ] **H-05** · Portfolio 切片：futu-mock.ts + routes/portfolio.ts + 8 个测试用例
 
 ### Phase B Checkpoint
