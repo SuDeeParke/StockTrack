@@ -8,10 +8,9 @@ echo "[2/5] npm install"
 npm install --prefer-offline 2>&1 | tail -2
 echo "[3/5] Build"
 npm run build:full 2>&1 | tail -6
-echo "[3.5/5] Copy external node_modules alongside bundle"
-mkdir -p server/dist/node_modules/better-sqlite3/build/Release
-cp server/node_modules/better-sqlite3/build/Release/better_sqlite3.node \
-   server/dist/node_modules/better-sqlite3/build/Release/better_sqlite3.node
+echo "[3.5/5] Copy external packages alongside bundle"
+mkdir -p server/dist/node_modules
+cp -r server/node_modules/better-sqlite3 server/dist/node_modules/better-sqlite3
 cp -r server/node_modules/bcryptjs server/dist/node_modules/bcryptjs
 echo "[4/5] Restart service"
 systemctl restart stocktrack
