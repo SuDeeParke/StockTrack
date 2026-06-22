@@ -4,7 +4,8 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { logger } from 'hono/logger'
 import { fileURLToPath } from 'node:url'
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { signalsRouter } from './routes/signals.js'
 import { backtestRouter } from './routes/backtest.js'
 import { portfolioRouter } from './routes/portfolio.js'
@@ -24,12 +25,17 @@ app.route('/', portfolioRouter)
 const PORT = Number(process.env.PORT) || 3000
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
-  // Serve static frontend if server/dist/public exists (production mode)
-  const staticDir = new URL('../public', import.meta.url).pathname.replace(/^\/([A-Z]:)/, '$1')
-  if (existsSync(staticDir)) {
-    app.use('/*', serveStatic({ root: './server/dist/public' }))
-    app.get('/*', serveStatic({ path: './server/dist/public/index.html' }))
-    console.log(`[server] Serving frontend from ${staticDir}`)
+  // Use process.cwd()-based path — reliable after esbuild bundling
+  const publicDir = join(process.cwd(), 'server', 'dist', 'public')
+  if (existsSync(publicDir)) {
+    console.log(`[server] Serving frontend from ${publicDir}`)
+    // Serve static assets (JS/CSS/images)
+    app.use('/assets/*', serveStatic({ root: 'server/dist/public' }))
+    app.use('/favicon.svg', serveStatic({ root: 'server/dist/public' }))
+    app.use('/icons.svg', serveStatic({ root: 'server/dist/public' }))
+    // SPA fallback — serve index.html for all remaining routes
+    const indexHtml = readFileSync(join(publicDir, 'index.html'), 'utf-8')
+    app.get('/*', (c) => c.html(indexHtml))
   }
 
   startScheduler()
