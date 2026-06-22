@@ -10,6 +10,8 @@ import { signalsRouter } from './routes/signals.js'
 import { backtestRouter } from './routes/backtest.js'
 import { portfolioRouter } from './routes/portfolio.js'
 import { adminRouter } from './routes/admin.js'
+import { authRouter } from './routes/auth.js'
+import { authMiddleware } from './middleware/auth.js'
 import { startScheduler } from './services/scheduler.js'
 import { initSchema } from './services/db-schema.js'
 
@@ -17,6 +19,15 @@ const app = new Hono()
 
 app.use('*', logger())
 app.use('*', cors({ origin: ['http://localhost:5173'] }))
+
+// Public: login
+app.route('/', authRouter)
+
+// Protected: all other /api/* routes
+app.use('/api/*', async (c, next) => {
+  if (c.req.path === '/api/auth/login') return next()
+  return authMiddleware(c, next)
+})
 
 app.route('/', adminRouter)
 app.route('/', signalsRouter)
