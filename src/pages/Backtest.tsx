@@ -24,9 +24,6 @@ import {
   TableRow,
 } from '../components/ui/table'
 
-const CN_TICKERS = ['600519.SH', '000858.SZ', '300750.SZ', '601318.SH', '000001.SZ']
-const US_TICKERS = ['AAPL.US', 'TSLA.US', 'MSFT.US', 'NVDA.US', 'GOOGL.US']
-
 function getStatValueClass(color?: string) {
   if (color === 'var(--color-buy)') return 'text-emerald-400'
   if (color === 'var(--color-sell)') return 'text-rose-400'
@@ -48,7 +45,7 @@ function StatCard({ label, value, color }: { label: string; value: string; color
 
 export default function Backtest() {
   const [strategyId, setStrategyId] = useState('')
-  const [selectedTickers, setSelectedTickers] = useState<string[]>(['600519.SH', '000858.SZ'])
+  const [selectedTickers, setSelectedTickers] = useState<string[]>([])
   const [startDate, setStartDate] = useState('2022-01-01')
   const [endDate, setEndDate] = useState('2024-01-01')
   const [result, setResult] = useState<BacktestResult | null>(null)
@@ -59,6 +56,16 @@ export default function Backtest() {
     queryKey: ['backtest-strategies'],
     queryFn: () => api.getStrategies(),
   })
+
+  const { data: signals = [] } = useQuery({
+    queryKey: ['signals', 'ALL'],
+    queryFn: () => api.getSignals('ALL'),
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const watchlist = Array.from(
+    new Map(signals.map((s) => [s.ticker, { ticker: s.ticker, name: s.name ?? s.ticker }])).values(),
+  )
 
   useEffect(() => {
     if (strategies.length > 0 && !strategyId) {
@@ -94,8 +101,6 @@ export default function Backtest() {
   })
 
   useEffect(() => stopPolling, [])
-
-  const allTickers = [...CN_TICKERS, ...US_TICKERS]
 
   const toggleTicker = (ticker: string) => {
     setSelectedTickers((prev) =>
@@ -188,23 +193,25 @@ export default function Backtest() {
             股票池（{selectedTickers.length} 只）
           </div>
           <div className="flex flex-wrap gap-1">
-            {allTickers.map((ticker) => {
+            {watchlist.map(({ ticker, name }) => {
               const active = selectedTickers.includes(ticker)
+              const label = name !== ticker ? name : ticker
               return (
-                <Button
+                <button
                   key={ticker}
                   type="button"
-                  size="sm"
-                  variant={active ? 'secondary' : 'outline'}
+                  title={label}
                   onClick={() => toggleTicker(ticker)}
-                  className={`h-auto px-2 py-0.5 font-mono text-xs ${
+                  className={`ticker-tag h-auto rounded px-2 py-0.5 text-xs transition-colors ${
                     active
                       ? 'border border-zinc-500 bg-zinc-800 text-zinc-50 hover:bg-zinc-700'
-                      : 'border-zinc-800 bg-transparent text-zinc-500 hover:text-zinc-300'
+                      : 'border border-zinc-800 bg-transparent text-zinc-500 hover:text-zinc-300'
                   }`}
                 >
-                  {ticker}
-                </Button>
+                  <span className="ticker-tag-label">
+                    <span className="inner">{label}</span>
+                  </span>
+                </button>
               )
             })}
           </div>

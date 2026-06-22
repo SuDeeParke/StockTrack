@@ -57,6 +57,24 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* Ticker tag marquee on hover */
+@keyframes marquee-scroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-100%); }
+}
+.ticker-tag-label {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  max-width: 72px;
+}
+.ticker-tag-label .inner {
+  display: inline-block;
+}
+.ticker-tag:hover .ticker-tag-label .inner {
+  animation: marquee-scroll 2.5s linear infinite;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
   width: 4px;

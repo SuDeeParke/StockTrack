@@ -2,7 +2,6 @@ import { NavLink, Outlet } from 'react-router-dom'
 
 const NAV_ITEMS = [
   { to: '/', label: '信号看板', enabled: true },
-  { to: '/stock/600519.SH', label: '个股详情', enabled: true },
   { to: '/backtest', label: '策略回测', enabled: true },
   { to: '/trade', label: '交易', enabled: true },
 ]
