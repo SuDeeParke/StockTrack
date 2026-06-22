@@ -8,6 +8,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { signalsRouter } from './routes/signals.js'
 import { backtestRouter } from './routes/backtest.js'
+import { positionsRouter } from './routes/positions.js'
 import { portfolioRouter } from './routes/portfolio.js'
 import { adminRouter } from './routes/admin.js'
 import { authRouter } from './routes/auth.js'
@@ -32,6 +33,7 @@ app.use('/api/*', async (c, next) => {
 app.route('/', adminRouter)
 app.route('/', signalsRouter)
 app.route('/', backtestRouter)
+app.route('/', positionsRouter)
 app.route('/', portfolioRouter)
 
 const PORT = Number(process.env.PORT) || 3000

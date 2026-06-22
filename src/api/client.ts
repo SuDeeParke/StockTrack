@@ -32,6 +32,25 @@ apiClient.interceptors.response.use(
 export type Market = 'CN' | 'US' | 'ALL'
 export type SignalType = 'BUY' | 'SELL' | 'WATCH'
 
+export interface UserPosition {
+  id: number
+  ticker: string
+  name: string
+  market: 'CN' | 'US'
+  shares: number
+  cost_basis: number
+  note: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface UserPositionWithDerived extends UserPosition {
+  current_price: number
+  market_value: number
+  pnl: number
+  pnl_pct: number
+}
+
 export interface Signal {
   ticker: string
   name?: string
@@ -159,6 +178,20 @@ export const api = {
 
   getPositions: () =>
     apiClient.get<Position[]>('/api/portfolio/positions').then((r) => r.data),
+
+  // Manage positions (self-managed watchlist)
+  listPositions: () =>
+    apiClient.get<UserPositionWithDerived[]>('/api/positions').then((r) => r.data),
+  createPosition: (req: { ticker: string; name: string; market: 'CN' | 'US'; shares: number; cost_basis: number; note?: string }) =>
+    apiClient.post<UserPositionWithDerived>('/api/positions', req).then((r) => r.data),
+  updatePosition: (id: number, req: Partial<{ name: string; shares: number; cost_basis: number; note: string }>) =>
+    apiClient.patch<UserPositionWithDerived>(`/api/positions/${id}`, req).then((r) => r.data),
+  deletePosition: (id: number) =>
+    apiClient.delete(`/api/positions/${id}`).then((r) => r.data),
+  bulkDeletePositions: (ids: number[]) =>
+    apiClient.post<{ deleted: number }>('/api/positions/bulk-delete', { ids }).then((r) => r.data),
+  getPositionsSignals: () =>
+    apiClient.get<Signal[]>('/api/positions/signals').then((r) => r.data),
 
   getBalance: () =>
     apiClient.get<AccountBalance>('/api/portfolio/balance').then((r) => r.data),

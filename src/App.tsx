@@ -31,6 +31,7 @@ export default function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
             <Route index element={<Dashboard />} />
+            <Route path="manage" element={<div className="p-6 text-zinc-400">管理（即将上线）</div>} />
             <Route path="backtest" element={<Backtest />} />
             <Route path="trade" element={<Trade />} />
             <Route path="stock/:ticker" element={<StockDetail />} />

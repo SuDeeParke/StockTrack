@@ -92,6 +92,25 @@ export interface BacktestResult {
   created_at: string
 }
 
+export interface UserPosition {
+  id: number
+  ticker: string
+  name: string
+  market: 'CN' | 'US'
+  shares: number
+  cost_basis: number
+  note: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface UserPositionWithDerived extends UserPosition {
+  current_price: number
+  market_value: number
+  pnl: number
+  pnl_pct: number
+}
+
 export interface Position {
   ticker: string
   market: 'CN' | 'US'

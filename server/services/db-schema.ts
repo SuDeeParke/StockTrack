@@ -28,6 +28,19 @@ export function initSchema(): void {
       user_id INTEGER NOT NULL UNIQUE,
       data TEXT NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS user_positions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      ticker TEXT NOT NULL,
+      name TEXT NOT NULL,
+      market TEXT NOT NULL CHECK (market IN ('CN', 'US')),
+      shares INTEGER NOT NULL CHECK (shares >= 1),
+      cost_basis REAL NOT NULL,
+      note TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE (user_id, ticker)
+    );
   `)
 
   // Seed admin if no users exist
