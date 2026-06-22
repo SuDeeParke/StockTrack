@@ -6,7 +6,7 @@ git checkout -- .
 git pull origin main
 echo "[2/5] npm install"
 npm install --prefer-offline 2>&1 | tail -2
-npm install --prefer-offline --prefix server 2>&1 | tail -2
+npm install --prefix server 2>&1 | tail -3
 echo "[3/5] Build"
 npm run build:full 2>&1 | tail -6
 echo "[3.5/5] Copy external packages alongside bundle"
