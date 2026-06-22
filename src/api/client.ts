@@ -7,6 +7,28 @@ export const apiClient = axios.create({
   headers: { 'Content-Type': 'application/json' },
 })
 
+
+// Request: inject Bearer token
+apiClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token')
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
+
+// Response: redirect to login on 401
+apiClient.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    if (err.response?.status === 401) {
+      localStorage.removeItem('token')
+      window.location.href = '/login'
+    }
+    return Promise.reject(err)
+  },
+)
+
 export type Market = 'CN' | 'US' | 'ALL'
 export type SignalType = 'BUY' | 'SELL' | 'WATCH'
 
