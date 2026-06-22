@@ -1,28 +1,51 @@
 import { randomUUID } from 'crypto'
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs'
+import { join } from 'node:path'
 import type { AccountBalance, Order, OrderRequest, Position, RiskCheckResult } from '../types/index.js'
 
-export const MOCK_POSITIONS: Position[] = [
-  { ticker: '600519.SH', market: 'CN', name: '贵州茅台', qty: 10,  avg_cost: 1750.0, current_price: 1800.0, market_value: 18000.0, pnl: 500.0,  pnl_pct: 2.86 },
-  { ticker: '000858.SZ', market: 'CN', name: '五粮液',   qty: 100, avg_cost: 150.0,  current_price: 145.3,  market_value: 14530.0, pnl: -470.0, pnl_pct: -3.13 },
-  { ticker: 'AAPL.US',   market: 'US', name: 'Apple',   qty: 20,  avg_cost: 180.0,  current_price: 195.5,  market_value: 3910.0,  pnl: 310.0,  pnl_pct: 8.61 },
-]
+const DATA_DIR = join(process.cwd(), 'data')
+const POSITIONS_FILE = join(DATA_DIR, 'positions.json')
+const ORDERS_FILE = join(DATA_DIR, 'orders.json')
+const BALANCE_FILE = join(DATA_DIR, 'balance.json')
 
-export const MOCK_BALANCE: AccountBalance = {
-  total_assets: 150000.0,
-  cash: 113560.0,
-  market_value: 36440.0,
-  daily_pnl: 340.0,
-  daily_pnl_pct: 0.23,
+function ensureDataDir() {
+  if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true })
 }
 
-const _orders = new Map<string, Order>()
+function loadJSON<T>(file: string, fallback: T): T {
+  if (existsSync(file)) {
+    try { return JSON.parse(readFileSync(file, 'utf-8')) } catch { /* fall through */ }
+  }
+  return fallback
+}
+
+function saveJSON(file: string, data: unknown) {
+  ensureDataDir()
+  writeFileSync(file, JSON.stringify(data, null, 2))
+}
+
+const DEFAULT_BALANCE: AccountBalance = {
+  total_assets: 150000,
+  cash: 150000,
+  market_value: 0,
+  daily_pnl: 0,
+  daily_pnl_pct: 0,
+}
+
+let _positions: Position[] = loadJSON<Position[]>(POSITIONS_FILE, [])
+let _balance: AccountBalance = loadJSON<AccountBalance>(BALANCE_FILE, DEFAULT_BALANCE)
+const _ordersArr: Order[] = loadJSON<Order[]>(ORDERS_FILE, [])
+const _orders = new Map<string, Order>(_ordersArr.map((o) => [o.order_id, o]))
 
 export function getPositions(): Position[] {
-  return MOCK_POSITIONS
+  return _positions
 }
 
 export function getBalance(): AccountBalance {
-  return MOCK_BALANCE
+  const market_value = _positions.reduce((s, p) => s + p.market_value, 0)
+  _balance.market_value = market_value
+  _balance.total_assets = _balance.cash + market_value
+  return _balance
 }
 
 export function getOrders(): Order[] {
@@ -34,17 +57,75 @@ export function getOrder(orderId: string): Order | undefined {
 }
 
 export function checkRisk(req: OrderRequest): RiskCheckResult {
-  const orderValue = req.qty * req.price
-  if (orderValue > MOCK_BALANCE.cash * 0.9) {
-    return { passed: false, reason: '可用资金不足，委托金额超过可用资金的 90%' }
+  if (req.qty <= 0) return { passed: false, reason: '委托数量必须大于 0' }
+  if (req.price <= 0) return { passed: false, reason: '委托价格必须大于 0' }
+  if (req.side === 'BUY') {
+    const orderValue = req.qty * req.price
+    if (orderValue > _balance.cash * 0.9)
+      return { passed: false, reason: '可用资金不足，委托金额超过可用资金的 90%' }
   }
-  if (req.qty <= 0) {
-    return { passed: false, reason: '委托数量必须大于 0' }
-  }
-  if (req.price <= 0) {
-    return { passed: false, reason: '委托价格必须大于 0' }
+  if (req.side === 'SELL') {
+    const pos = _positions.find((p) => p.ticker === req.ticker)
+    if (!pos || pos.qty < req.qty)
+      return { passed: false, reason: '持仓数量不足' }
   }
   return { passed: true }
+}
+
+function applyFill(order: Order) {
+  const { ticker, market, side, qty, price } = order
+  const idx = _positions.findIndex((p) => p.ticker === ticker)
+
+  if (side === 'BUY') {
+    if (idx >= 0) {
+      const p = _positions[idx]
+      const newQty = p.qty + qty
+      const newAvgCost = (p.qty * p.avg_cost + qty * price) / newQty
+      _positions[idx] = {
+        ...p,
+        qty: newQty,
+        avg_cost: newAvgCost,
+        current_price: price,
+        market_value: newQty * price,
+        pnl: (price - newAvgCost) * newQty,
+        pnl_pct: ((price - newAvgCost) / newAvgCost) * 100,
+      }
+    } else {
+      _positions.push({
+        ticker,
+        market,
+        name: ticker,
+        qty,
+        avg_cost: price,
+        current_price: price,
+        market_value: qty * price,
+        pnl: 0,
+        pnl_pct: 0,
+      })
+    }
+    _balance.cash -= qty * price
+  } else {
+    if (idx >= 0) {
+      const p = _positions[idx]
+      const newQty = p.qty - qty
+      if (newQty <= 0) {
+        _positions.splice(idx, 1)
+      } else {
+        _positions[idx] = {
+          ...p,
+          qty: newQty,
+          current_price: price,
+          market_value: newQty * price,
+          pnl: (price - p.avg_cost) * newQty,
+          pnl_pct: ((price - p.avg_cost) / p.avg_cost) * 100,
+        }
+      }
+      _balance.cash += qty * price
+    }
+  }
+
+  saveJSON(POSITIONS_FILE, _positions)
+  saveJSON(BALANCE_FILE, _balance)
 }
 
 export function placeOrder(req: OrderRequest): Order {
@@ -65,7 +146,8 @@ export function placeOrder(req: OrderRequest): Order {
     paper_trade: req.paper_trade ?? true,
   }
   _orders.set(orderId, order)
-  // Simulate async fill
+  saveJSON(ORDERS_FILE, Array.from(_orders.values()))
+
   Promise.resolve().then(() => {
     const filled: Order = {
       ...order,
@@ -75,6 +157,9 @@ export function placeOrder(req: OrderRequest): Order {
       updated_at: new Date().toISOString(),
     }
     _orders.set(orderId, filled)
+    saveJSON(ORDERS_FILE, Array.from(_orders.values()))
+    applyFill(filled)
   })
+
   return order
 }
