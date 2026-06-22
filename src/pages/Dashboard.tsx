@@ -170,6 +170,7 @@ export default function Dashboard() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>股票代码</TableHead>
+                    <TableHead>名称</TableHead>
                     <TableHead>市场</TableHead>
                     <TableHead>信号</TableHead>
                     <TableHead>
@@ -215,6 +216,9 @@ export default function Dashboard() {
                     >
                       <TableCell className="font-mono font-semibold text-zinc-50">
                         {sig.ticker}
+                      </TableCell>
+                      <TableCell className="text-zinc-300">
+                        {sig.name ?? '—'}
                       </TableCell>
                       <TableCell>
                         <MarketBadge market={sig.market} />

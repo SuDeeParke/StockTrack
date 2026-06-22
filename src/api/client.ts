@@ -34,6 +34,7 @@ export type SignalType = 'BUY' | 'SELL' | 'WATCH'
 
 export interface Signal {
   ticker: string
+  name?: string
   market: 'CN' | 'US'
   signal_type: SignalType
   date: string
@@ -55,9 +56,11 @@ export interface IndicatorSnapshot {
   ticker: string
   market: 'CN' | 'US'
   date: string
-  macd?: number
-  macd_signal?: number
-  macd_hist?: number
+  macd?: number      // histogram (DIF-DEA)*2
+  macd_dif?: number  // DIF line
+  macd_dea?: number  // DEA/Signal line
+  macd_signal?: number  // alias for macd_dea
+  macd_hist?: number    // alias for macd
   rsi?: number
   kdj_k?: number
   kdj_d?: number
