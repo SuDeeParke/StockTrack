@@ -4,19 +4,23 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch index.ts",
-    "build": "esbuild index.ts --bundle --platform=node --target=node20 --format=esm --outfile=dist/index.js --external:yahoo-finance2 --external:node-cron",
+    "build": "esbuild index.ts --bundle --platform=node --target=node20 --format=esm --outfile=dist/index.js --external:yahoo-finance2 --external:node-cron --external:better-sqlite3",
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {
     "@hono/node-server": "^1.14.4",
     "@hono/zod-validator": "^0.8.0",
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^12.11.1",
     "hono": "^4.7.11",
     "node-cron": "^3.0.3",
     "yahoo-finance2": "^2.13.3",
     "zod": "^3.25.64"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20.19.1",
     "@types/node-cron": "^3.0.11",
     "esbuild": "^0.25.5",

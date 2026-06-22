@@ -11,6 +11,7 @@ import { backtestRouter } from './routes/backtest.js'
 import { portfolioRouter } from './routes/portfolio.js'
 import { adminRouter } from './routes/admin.js'
 import { startScheduler } from './services/scheduler.js'
+import { initSchema } from './services/db-schema.js'
 
 const app = new Hono()
 
@@ -38,6 +39,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     app.get('/*', (c) => c.html(indexHtml))
   }
 
+  initSchema()
   startScheduler()
   serve({ fetch: app.fetch, port: PORT }, () => {
     console.log(`[server] Hono running on http://localhost:${PORT}`)
