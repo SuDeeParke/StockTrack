@@ -166,98 +166,155 @@ export default function Dashboard() {
             </Alert>
           ) : (
             <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>股票代码</TableHead>
-                    <TableHead>名称</TableHead>
-                    <TableHead>市场</TableHead>
-                    <TableHead>信号</TableHead>
-                    <TableHead>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-auto p-0 text-xs font-medium uppercase tracking-wider text-zinc-500"
-                        onClick={() => handleSort('date')}
-                      >
-                        日期 <ArrowUpDown className="ml-1 h-3 w-3" />
-                      </Button>
-                    </TableHead>
-                    <TableHead>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-auto p-0 text-xs font-medium uppercase tracking-wider text-zinc-500"
-                        onClick={() => handleSort('price')}
-                      >
-                        价格 <ArrowUpDown className="ml-1 h-3 w-3" />
-                      </Button>
-                    </TableHead>
-                    <TableHead>MACD</TableHead>
-                    <TableHead>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-auto p-0 text-xs font-medium uppercase tracking-wider text-zinc-500"
-                        onClick={() => handleSort('rsi')}
-                      >
-                        RSI <ArrowUpDown className="ml-1 h-3 w-3" />
-                      </Button>
-                    </TableHead>
-                    <TableHead>操作</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sorted.map((sig) => (
-                    <TableRow
-                      key={sig.ticker + sig.date}
-                      onClick={() => navigate(`/stock/${sig.ticker}`)}
-                      className="cursor-pointer"
-                    >
-                      <TableCell className="font-mono font-semibold text-zinc-50">
-                        {sig.ticker}
-                      </TableCell>
-                      <TableCell className="text-zinc-300">
-                        {sig.name ?? '—'}
-                      </TableCell>
-                      <TableCell>
-                        <MarketBadge market={sig.market} />
-                      </TableCell>
-                      <TableCell>
-                        <SignalBadge type={sig.signal_type} />
-                      </TableCell>
-                      <TableCell className="font-mono text-zinc-500">{sig.date}</TableCell>
-                      <TableCell className="font-mono">{sig.price.toFixed(2)}</TableCell>
-                      <TableCell className="font-mono text-zinc-500">
-                        {sig.indicators.macd?.toFixed(2) ?? '—'}
-                      </TableCell>
-                      <TableCell>
-                        <RsiCell rsi={sig.indicators.rsi} />
-                      </TableCell>
-                      <TableCell>
-                        {ORDERABLE_SIGNAL_TYPES.includes(sig.signal_type) ? (
-                          <Button
-                            size="sm"
-                            variant={sig.signal_type === 'BUY' ? 'default' : 'destructive'}
-                            className={
-                              sig.signal_type === 'BUY'
-                                ? 'bg-emerald-500 text-zinc-950 hover:bg-emerald-500/90'
-                                : undefined
-                            }
-                            onClick={(event) =>
-                              handleTrade(event, sig.ticker, sig.signal_type as 'BUY' | 'SELL')
-                            }
-                          >
-                            下单
-                          </Button>
-                        ) : (
-                          <span className="text-xs text-zinc-600">—</span>
-                        )}
-                      </TableCell>
+              {/* 桌面表格：md 以上显示 */}
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>股票代码</TableHead>
+                      <TableHead>名称</TableHead>
+                      <TableHead>市场</TableHead>
+                      <TableHead>信号</TableHead>
+                      <TableHead>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-auto p-0 text-xs font-medium uppercase tracking-wider text-zinc-500"
+                          onClick={() => handleSort('date')}
+                        >
+                          日期 <ArrowUpDown className="ml-1 h-3 w-3" />
+                        </Button>
+                      </TableHead>
+                      <TableHead>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-auto p-0 text-xs font-medium uppercase tracking-wider text-zinc-500"
+                          onClick={() => handleSort('price')}
+                        >
+                          价格 <ArrowUpDown className="ml-1 h-3 w-3" />
+                        </Button>
+                      </TableHead>
+                      <TableHead>MACD</TableHead>
+                      <TableHead>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-auto p-0 text-xs font-medium uppercase tracking-wider text-zinc-500"
+                          onClick={() => handleSort('rsi')}
+                        >
+                          RSI <ArrowUpDown className="ml-1 h-3 w-3" />
+                        </Button>
+                      </TableHead>
+                      <TableHead>操作</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {sorted.map((sig) => (
+                      <TableRow
+                        key={sig.ticker + sig.date}
+                        onClick={() => navigate(`/stock/${sig.ticker}`)}
+                        className="cursor-pointer"
+                      >
+                        <TableCell className="font-mono font-semibold text-zinc-50">
+                          {sig.ticker}
+                        </TableCell>
+                        <TableCell className="text-zinc-300">
+                          {sig.name ?? '—'}
+                        </TableCell>
+                        <TableCell>
+                          <MarketBadge market={sig.market} />
+                        </TableCell>
+                        <TableCell>
+                          <SignalBadge type={sig.signal_type} />
+                        </TableCell>
+                        <TableCell className="font-mono text-zinc-500">{sig.date}</TableCell>
+                        <TableCell className="font-mono">{sig.price.toFixed(2)}</TableCell>
+                        <TableCell className="font-mono text-zinc-500">
+                          {sig.indicators.macd?.toFixed(2) ?? '—'}
+                        </TableCell>
+                        <TableCell>
+                          <RsiCell rsi={sig.indicators.rsi} />
+                        </TableCell>
+                        <TableCell>
+                          {ORDERABLE_SIGNAL_TYPES.includes(sig.signal_type) ? (
+                            <Button
+                              size="sm"
+                              variant={sig.signal_type === 'BUY' ? 'default' : 'destructive'}
+                              className={
+                                sig.signal_type === 'BUY'
+                                  ? 'bg-emerald-500 text-zinc-950 hover:bg-emerald-500/90'
+                                  : undefined
+                              }
+                              onClick={(event) =>
+                                handleTrade(event, sig.ticker, sig.signal_type as 'BUY' | 'SELL')
+                              }
+                            >
+                              下单
+                            </Button>
+                          ) : (
+                            <span className="text-xs text-zinc-600">—</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* 移动端卡片列表：md 以下显示 */}
+              <div className="flex flex-col gap-2 md:hidden">
+                {sorted.map((sig) => (
+                  <div
+                    key={sig.ticker + sig.date}
+                    onClick={() => navigate(`/stock/${sig.ticker}`)}
+                    className="cursor-pointer rounded-lg border border-zinc-800 bg-zinc-900/60 p-3"
+                  >
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <div>
+                        <div className="font-mono text-sm font-semibold text-zinc-50">
+                          {sig.name ?? sig.ticker}
+                        </div>
+                        <div className="font-mono text-xs text-zinc-500">{sig.ticker}</div>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <MarketBadge market={sig.market} />
+                        <SignalBadge type={sig.signal_type} />
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="font-mono text-base font-bold text-zinc-50">
+                          {sig.price.toFixed(2)}
+                        </span>
+                        <span className="font-mono text-xs text-zinc-500">{sig.date}</span>
+                        {sig.indicators.rsi !== undefined && (
+                          <span className="text-xs text-zinc-500">
+                            RSI <RsiCell rsi={sig.indicators.rsi} />
+                          </span>
+                        )}
+                      </div>
+                      {ORDERABLE_SIGNAL_TYPES.includes(sig.signal_type) && (
+                        <Button
+                          size="sm"
+                          variant={sig.signal_type === 'BUY' ? 'default' : 'destructive'}
+                          className={
+                            sig.signal_type === 'BUY'
+                              ? 'bg-emerald-500 text-zinc-950 hover:bg-emerald-500/90'
+                              : undefined
+                          }
+                          onClick={(event) =>
+                            handleTrade(event, sig.ticker, sig.signal_type as 'BUY' | 'SELL')
+                          }
+                        >
+                          下单
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
               {sorted.length === 0 && (
                 <div className="p-8 text-center text-zinc-500">暂无信号数据</div>
               )}

@@ -76,6 +76,7 @@ function PositionsTab({ positions }: { positions: Position[] }) {
   }
 
   return (
+    <div className="overflow-x-auto">
     <Table>
       <TableHeader>
         <TableRow>
@@ -106,6 +107,7 @@ function PositionsTab({ positions }: { positions: Position[] }) {
         ))}
       </TableBody>
     </Table>
+    </div>
   )
 }
 
@@ -262,6 +264,7 @@ function OrderHistoryTab({ orders }: { orders: Order[] }) {
   }
 
   return (
+    <div className="overflow-x-auto">
     <Table>
       <TableHeader>
         <TableRow>
@@ -307,6 +310,7 @@ function OrderHistoryTab({ orders }: { orders: Order[] }) {
         ))}
       </TableBody>
     </Table>
+    </div>
   )
 }
 

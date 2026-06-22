@@ -230,7 +230,7 @@ export default function StockDetail() {
         {ohlcvLoading ? (
           <Skeleton className="h-64 w-full" />
         ) : ohlcv.length > 0 ? (
-          <ReactECharts option={klineOption} className="h-[340px]" theme="dark" />
+          <ReactECharts option={klineOption} className="h-[220px] md:h-[340px]" theme="dark" />
         ) : (
           <div className="flex h-64 items-center justify-center text-zinc-500">暂无 K 线数据</div>
         )}
