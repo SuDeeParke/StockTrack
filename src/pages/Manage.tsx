@@ -547,127 +547,97 @@ export default function Manage() {
 
   const clearSelection = useCallback(() => setSelected(new Set()), [])
 
-  // ---------- Loading / Error / Empty ----------
-
-  if (isLoading) {
-    return (
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold text-zinc-50">管理</h1>
-          {addButton}
-        </div>
-        <div className="flex items-center justify-center h-48">
-          <p className="text-zinc-500">加载中...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (isError) {
-    return (
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold text-zinc-50">管理</h1>
-          {addButton}
-        </div>
-        <Alert variant="destructive">
-          <AlertDescription>
-            {(error as { response?: { data?: { detail?: string } } })
-              ?.response?.data?.detail ??
-              (error as Error).message ??
-              '加载失败'}
-          </AlertDescription>
-        </Alert>
-      </div>
-    )
-  }
-
-  if (!positions || positions.length === 0) {
-    return (
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold text-zinc-50">管理</h1>
-          {addButton}
-        </div>
-        <div className="flex items-center justify-center h-48">
-          <p className="text-zinc-500">还没有持仓，点击右上角添加</p>
-        </div>
-
-        {/* Add/Edit dialog/sheet */}
-        {isDesktop ? (
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>
-                  {editing ? '编辑持仓' : '添加持仓'}
-                </DialogTitle>
-                <DialogDescription>
-                  {editing
-                    ? '修改持仓信息'
-                    : '输入新的持仓信息'}
-                </DialogDescription>
-              </DialogHeader>
-              <PositionForm
-                mode={editing ? 'edit' : 'create'}
-                initial={editing?.values}
-                editId={editing?.id}
-                onSuccess={handleDialogClose}
-                onCancel={handleDialogClose}
-              />
-            </DialogContent>
-          </Dialog>
-        ) : (
-          <Sheet open={dialogOpen} onOpenChange={setDialogOpen}>
-            <SheetContent side="bottom">
-              <SheetHeader>
-                <SheetTitle>
-                  {editing ? '编辑持仓' : '添加持仓'}
-                </SheetTitle>
-                <SheetDescription>
-                  {editing
-                    ? '修改持仓信息'
-                    : '输入新的持仓信息'}
-                </SheetDescription>
-              </SheetHeader>
-              <div className="mt-4">
-                <PositionForm
-                  mode={editing ? 'edit' : 'create'}
-                  initial={editing?.values}
-                  editId={editing?.id}
-                  onSuccess={handleDialogClose}
-                  onCancel={handleDialogClose}
-                />
-              </div>
-            </SheetContent>
-          </Sheet>
-        )}
-      </div>
-    )
-  }
-
-  // ---------- Pnl helpers ----------
-
   const pnlClass = (val: number | null | undefined) =>
     val != null && val >= 0 ? 'text-emerald-400' : 'text-rose-400'
 
-  // ---------- Desktop: Table ----------
+  const header = (
+    <div className="flex items-center justify-between mb-4">
+      <h1 className="text-2xl font-bold text-zinc-50">管理</h1>
+      {addButton}
+    </div>
+  )
 
-  const desktopView = (
-    <>
-      {selected.size > 0 && (
-        <div className="flex items-center gap-3 mb-3 px-1">
-          <span className="text-sm text-zinc-400">
-            已选 {selected.size} 项
-          </span>
-          <BulkDeleteConfirm
-            selected={selected}
-            positions={positions}
-            onSuccess={clearSelection}
+  // Add/Edit dialog rendered once; reachable from any list state.
+  const formDialog = isDesktop ? (
+    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{editing ? '编辑持仓' : '添加持仓'}</DialogTitle>
+          <DialogDescription>
+            {editing ? '修改持仓信息' : '输入新的持仓信息'}
+          </DialogDescription>
+        </DialogHeader>
+        <PositionForm
+          mode={editing ? 'edit' : 'create'}
+          initial={editing?.values}
+          editId={editing?.id}
+          onSuccess={handleDialogClose}
+          onCancel={handleDialogClose}
+        />
+      </DialogContent>
+    </Dialog>
+  ) : (
+    <Sheet open={dialogOpen} onOpenChange={setDialogOpen}>
+      <SheetContent side="bottom">
+        <SheetHeader>
+          <SheetTitle>{editing ? '编辑持仓' : '添加持仓'}</SheetTitle>
+          <SheetDescription>
+            {editing ? '修改持仓信息' : '输入新的持仓信息'}
+          </SheetDescription>
+        </SheetHeader>
+        <div className="mt-4">
+          <PositionForm
+            mode={editing ? 'edit' : 'create'}
+            initial={editing?.values}
+            editId={editing?.id}
+            onSuccess={handleDialogClose}
+            onCancel={handleDialogClose}
           />
         </div>
-      )}
+      </SheetContent>
+    </Sheet>
+  )
 
-      <Table>
+  const selectionBar = positions && positions.length > 0 && selected.size > 0 ? (
+    <div className="flex items-center gap-3 mb-3 px-1">
+      <span className="text-sm text-zinc-400">已选 {selected.size} 项</span>
+      <BulkDeleteConfirm
+        selected={selected}
+        positions={positions}
+        onSuccess={clearSelection}
+      />
+    </div>
+  ) : null
+
+  let body: React.ReactNode
+  if (isLoading) {
+    body = (
+      <div className="flex items-center justify-center h-48">
+        <p className="text-zinc-500">加载中...</p>
+      </div>
+    )
+  } else if (isError) {
+    body = (
+      <Alert variant="destructive">
+        <AlertDescription>
+          {(error as { response?: { data?: { detail?: string } } })
+            ?.response?.data?.detail ??
+            (error as Error).message ??
+            '加载失败'}
+        </AlertDescription>
+      </Alert>
+    )
+  } else if (!positions || positions.length === 0) {
+    body = (
+      <div className="flex items-center justify-center h-48">
+        <p className="text-zinc-500">还没有持仓，点击右上角添加</p>
+      </div>
+    )
+  } else if (isDesktop) {
+    body = (
+      <>
+        {selectionBar}
+        <Table>
         <TableHeader>
           <TableRow>
             <TableHead className="w-10">
@@ -771,27 +741,14 @@ export default function Manage() {
           ))}
         </TableBody>
       </Table>
-    </>
-  )
-
-  // ---------- Mobile: Card list ----------
-
-  const mobileView = (
-    <div className="space-y-3">
-      {selected.size > 0 && (
-        <div className="flex items-center gap-3 px-1">
-          <span className="text-sm text-zinc-400">
-            已选 {selected.size} 项
-          </span>
-          <BulkDeleteConfirm
-            selected={selected}
-            positions={positions}
-            onSuccess={clearSelection}
-          />
-        </div>
-      )}
-
-      {positions.map((p) => (
+      </>
+    )
+  } else {
+    body = (
+      <>
+        {selectionBar}
+        <div className="space-y-3">
+          {positions.map((p) => (
         <div
           key={p.id}
           className={cn(
@@ -879,64 +836,16 @@ export default function Manage() {
           </div>
         </div>
       ))}
-    </div>
-  )
-
-  // ---------- Render ----------
+        </div>
+      </>
+    )
+  }
 
   return (
     <div className="p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold text-zinc-50">管理</h1>
-        {addButton}
-      </div>
-
-      {isDesktop ? desktopView : mobileView}
-
-      {/* Add/Edit dialog/sheet */}
-      {isDesktop ? (
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>
-                {editing ? '编辑持仓' : '添加持仓'}
-              </DialogTitle>
-              <DialogDescription>
-                {editing ? '修改持仓信息' : '输入新的持仓信息'}
-              </DialogDescription>
-            </DialogHeader>
-            <PositionForm
-              mode={editing ? 'edit' : 'create'}
-              initial={editing?.values}
-              editId={editing?.id}
-              onSuccess={handleDialogClose}
-              onCancel={handleDialogClose}
-            />
-          </DialogContent>
-        </Dialog>
-      ) : (
-        <Sheet open={dialogOpen} onOpenChange={setDialogOpen}>
-          <SheetContent side="bottom">
-            <SheetHeader>
-              <SheetTitle>
-                {editing ? '编辑持仓' : '添加持仓'}
-              </SheetTitle>
-              <SheetDescription>
-                {editing ? '修改持仓信息' : '输入新的持仓信息'}
-              </SheetDescription>
-            </SheetHeader>
-            <div className="mt-4">
-              <PositionForm
-                mode={editing ? 'edit' : 'create'}
-                initial={editing?.values}
-                editId={editing?.id}
-                onSuccess={handleDialogClose}
-                onCancel={handleDialogClose}
-              />
-            </div>
-          </SheetContent>
-        </Sheet>
-      )}
+      {header}
+      {body}
+      {formDialog}
     </div>
   )
 }
