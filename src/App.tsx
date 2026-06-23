@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard'
 import Backtest from './pages/Backtest'
 import StockDetail from './pages/StockDetail'
 import Trade from './pages/Trade'
+import Manage from './pages/Manage'
 import Login from './pages/Login'
 import './index.css'
 
@@ -31,7 +32,7 @@ export default function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
             <Route index element={<Dashboard />} />
-            <Route path="manage" element={<div className="p-6 text-zinc-400">管理（即将上线）</div>} />
+            <Route path="manage" element={<Manage />} />
             <Route path="backtest" element={<Backtest />} />
             <Route path="trade" element={<Trade />} />
             <Route path="stock/:ticker" element={<StockDetail />} />
