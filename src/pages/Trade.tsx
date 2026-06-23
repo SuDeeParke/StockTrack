@@ -7,7 +7,7 @@ import {
   type Order,
   type OrderRequest,
   type OrderSide,
-  type Position,
+  type UserPositionWithDerived,
   type RiskCheckResult,
 } from '../api/client'
 import { Button } from '../components/ui/button'
@@ -70,7 +70,7 @@ function BalanceCard({ b }: { b: AccountBalance }) {
   )
 }
 
-function PositionsTab({ positions }: { positions: Position[] }) {
+function PositionsTab({ positions }: { positions: UserPositionWithDerived[] }) {
   if (positions.length === 0) {
     return <div className="py-16 text-center text-zinc-500">暂无持仓</div>
   }
@@ -93,8 +93,8 @@ function PositionsTab({ positions }: { positions: Position[] }) {
             <TableCell>
               <Badge variant={p.market === 'CN' ? 'cn' : 'us'}>{p.market}</Badge>
             </TableCell>
-            <TableCell>{p.qty}</TableCell>
-            <TableCell className="font-mono">{p.avg_cost.toFixed(2)}</TableCell>
+            <TableCell>{p.shares}</TableCell>
+            <TableCell className="font-mono">{p.cost_basis.toFixed(2)}</TableCell>
             <TableCell className="font-mono">{p.current_price.toFixed(2)}</TableCell>
             <TableCell className="font-mono">¥{p.market_value.toLocaleString()}</TableCell>
             <TableCell className={`font-mono ${p.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
@@ -144,6 +144,8 @@ function OrderTab() {
       queryClient.invalidateQueries({ queryKey: ['orders'] })
       queryClient.invalidateQueries({ queryKey: ['positions'] })
       queryClient.invalidateQueries({ queryKey: ['balance'] })
+      queryClient.invalidateQueries({ queryKey: ['positions-signals'] })
+      queryClient.invalidateQueries({ queryKey: ['signals'] })
     },
     onError: (e: any) => setError(e?.response?.data?.detail ?? '下单失败'),
   })
@@ -325,7 +327,7 @@ export default function Trade() {
 
   const { data: positions = [] } = useQuery({
     queryKey: ['positions'],
-    queryFn: () => api.getPositions(),
+    queryFn: () => api.listPositions(),
   })
   const { data: balance } = useQuery({
     queryKey: ['balance'],
