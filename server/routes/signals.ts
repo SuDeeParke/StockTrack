@@ -56,6 +56,5 @@ signalsRouter.get('/api/stocks/:ticker/indicators', async (c) => {
     }
   }
   const snapshot = getIndicatorSnapshot(ticker)
-  if (!snapshot) return c.json({ detail: `Ticker '${ticker}' not found` }, 404)
   return c.json(snapshot)
 })

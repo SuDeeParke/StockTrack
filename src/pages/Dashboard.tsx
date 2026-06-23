@@ -1,4 +1,4 @@
-import { useState, type MouseEvent } from 'react'
+import { useState, useMemo, type MouseEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowUpDown } from 'lucide-react'
@@ -84,19 +84,40 @@ function SkeletonTable() {
 export default function Dashboard() {
   const navigate = useNavigate()
   const [market, setMarket] = useState<Market>('ALL')
+  const [mode, setMode] = useState<'positions' | 'market'>('positions')
   const [sortKey, setSortKey] = useState<SortKey>('date')
   const [sortAsc, setSortAsc] = useState(false)
 
+  const positionsQuery = useQuery({
+    queryKey: ['positions-signals'],
+    queryFn: () => api.getPositionsSignals(),
+    enabled: mode === 'positions',
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const marketQuery = useQuery({
+    queryKey: ['signals', market],
+    queryFn: () => api.getSignals(market),
+    enabled: mode === 'market',
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const query = mode === 'positions' ? positionsQuery : marketQuery
   const {
-    data: signals = [],
+    data: rawSignals = [],
     isLoading,
     isError,
     dataUpdatedAt,
-  } = useQuery({
-    queryKey: ['signals', market],
-    queryFn: () => api.getSignals(market),
-    staleTime: 5 * 60 * 1000,
-  })
+  } = query
+
+  // Client-side market filter for positions mode
+  const signals = useMemo(() => {
+    if (mode === 'positions') {
+      if (market === 'ALL') return rawSignals
+      return rawSignals.filter((s) => s.market === market)
+    }
+    return rawSignals
+  }, [rawSignals, mode, market])
 
   const hasStale = signals.some((signal) => signal.stale)
 
@@ -138,12 +159,30 @@ export default function Dashboard() {
         )}
       </div>
 
+      {/* 模拟数据 Alert */}
+      <Alert className="mb-4">
+        <AlertDescription>📊 信号为模拟数据，仅供 UX 验证，不构成投资建议</AlertDescription>
+      </Alert>
+
       {hasStale && (
         <Alert variant="warning" className="mb-4">
           <AlertDescription>⚠️ 部分数据未及时更新，显示最近已知数据</AlertDescription>
         </Alert>
       )}
 
+      {/* Mode toggle: 我的持仓 / 全市场 */}
+      <Tabs
+        value={mode}
+        onValueChange={(value) => setMode(value as 'positions' | 'market')}
+        className="mb-4"
+      >
+        <TabsList className="w-auto">
+          <TabsTrigger value="positions">我的持仓</TabsTrigger>
+          <TabsTrigger value="market">全市场</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      {/* Market sub-filter */}
       <Tabs
         value={market}
         onValueChange={(value) => setMarket(value as Market)}
@@ -164,6 +203,13 @@ export default function Dashboard() {
             <Alert variant="destructive">
               <AlertDescription>加载失败，请检查后端服务是否启动</AlertDescription>
             </Alert>
+          ) : signals.length === 0 && mode === 'positions' ? (
+            <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+              <p className="text-zinc-400">还没有持仓，信号看板为空</p>
+              <Button onClick={() => navigate('/manage')}>去管理添加持仓</Button>
+            </div>
+          ) : signals.length === 0 && mode === 'market' ? (
+            <div className="p-8 text-center text-zinc-500">暂无信号数据</div>
           ) : (
             <>
               {/* 桌面表格：md 以上显示 */}
@@ -214,7 +260,7 @@ export default function Dashboard() {
                       <TableRow
                         key={sig.ticker + sig.date}
                         onClick={() => navigate(`/stock/${sig.ticker}`)}
-                        className="cursor-pointer"
+                        className={cn('cursor-pointer', sig.stale && 'opacity-60')}
                       >
                         <TableCell className="font-mono font-semibold text-zinc-50">
                           {sig.ticker}
@@ -227,6 +273,7 @@ export default function Dashboard() {
                         </TableCell>
                         <TableCell>
                           <SignalBadge type={sig.signal_type} />
+                          {sig.stale && <span className="ml-1 text-xs text-zinc-500">(旧)</span>}
                         </TableCell>
                         <TableCell className="font-mono text-zinc-500">{sig.date}</TableCell>
                         <TableCell className="font-mono">{sig.price.toFixed(2)}</TableCell>
@@ -268,7 +315,10 @@ export default function Dashboard() {
                   <div
                     key={sig.ticker + sig.date}
                     onClick={() => navigate(`/stock/${sig.ticker}`)}
-                    className="cursor-pointer rounded-lg border border-zinc-800 bg-zinc-900/60 p-3"
+                    className={cn(
+                      'cursor-pointer rounded-lg border border-zinc-800 bg-zinc-900/60 p-3',
+                      sig.stale && 'opacity-60'
+                    )}
                   >
                     <div className="mb-2 flex items-center justify-between gap-2">
                       <div>
@@ -280,6 +330,7 @@ export default function Dashboard() {
                       <div className="flex items-center gap-1.5">
                         <MarketBadge market={sig.market} />
                         <SignalBadge type={sig.signal_type} />
+                        {sig.stale && <span className="ml-1 text-xs text-zinc-500">(旧)</span>}
                       </div>
                     </div>
                     <div className="flex items-center justify-between">
@@ -314,10 +365,6 @@ export default function Dashboard() {
                   </div>
                 ))}
               </div>
-
-              {sorted.length === 0 && (
-                <div className="p-8 text-center text-zinc-500">暂无信号数据</div>
-              )}
             </>
           )}
         </TabsContent>

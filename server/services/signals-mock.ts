@@ -50,16 +50,103 @@ export function genOHLCV(ticker: string, days: number): OHLCVBar[] {
   return bars
 }
 
-export function getIndicatorSnapshot(ticker: string): IndicatorSnapshot | null {
-  const sig = MOCK_SIGNALS.find((s) => s.ticker === ticker)
-  if (!sig) return null
+// ── Math helpers (private) ───────────────────────────────────────────────────
+
+function round2(n: number): number {
+  return Math.round(n * 100) / 100
+}
+
+function computeRSI(closes: number[], period: number): number {
+  if (closes.length < period + 1) return 50
+  const deltas: number[] = []
+  for (let i = 1; i < closes.length; i++) deltas.push(closes[i] - closes[i - 1])
+
+  let avgGain = 0
+  let avgLoss = 0
+  for (let i = 0; i < period; i++) {
+    if (deltas[i] > 0) avgGain += deltas[i]
+    else avgLoss += Math.abs(deltas[i])
+  }
+  avgGain /= period
+  avgLoss /= period
+
+  for (let i = period; i < deltas.length; i++) {
+    const d = deltas[i]
+    avgGain = (avgGain * (period - 1) + (d > 0 ? d : 0)) / period
+    avgLoss = (avgLoss * (period - 1) + (d < 0 ? Math.abs(d) : 0)) / period
+  }
+
+  if (avgLoss === 0) return 100
+  const rs = avgGain / avgLoss
+  const rsi = 100 - 100 / (1 + rs)
+  return Math.max(0, Math.min(100, rsi))
+}
+
+function computeEMA(closes: number[], period: number): number[] {
+  const multiplier = 2 / (period + 1)
+  const ema: number[] = []
+  const sma = closes.slice(0, period).reduce((a, b) => a + b, 0) / period
+  ema.push(sma)
+  for (let i = period; i < closes.length; i++) {
+    ema.push((closes[i] - ema[ema.length - 1]) * multiplier + ema[ema.length - 1])
+  }
+  return ema
+}
+
+function computeMACD(closes: number[]): number {
+  if (closes.length < 26) return 0
+  const ema12 = computeEMA(closes, 12)
+  const ema26 = computeEMA(closes, 26)
+  return ema12[ema12.length - 1] - ema26[ema26.length - 1]
+}
+
+function computeKDJ_K(bars: OHLCVBar[], period: number): number {
+  if (bars.length < period) return 50
+  const start = bars.length - period
+  const window = bars.slice(start)
+  const highest = Math.max(...window.map((b) => b.high))
+  const lowest = Math.min(...window.map((b) => b.low))
+  if (highest === lowest) return 50
+  // seeded K: seed prevK = 50, iterate over window
+  let k = 50
+  for (let i = 0; i < window.length; i++) {
+    const wClose = bars[start + i].close
+    const wLow = Math.min(...bars.slice(start, start + i + 1).map((b) => b.low))
+    const wHigh = Math.max(...bars.slice(start, start + i + 1).map((b) => b.high))
+    const wRsv = wHigh === wLow ? 50 : ((wClose - wLow) / (wHigh - wLow)) * 100
+    k = (2 / 3) * k + (1 / 3) * wRsv
+  }
+  return Math.max(0, Math.min(100, k))
+}
+
+// ── Exported helpers ─────────────────────────────────────────────────────────
+
+export function computeIndicators(ohlcv: OHLCVBar[]): { macd: number; rsi: number; kdj_k: number } {
+  const closes = ohlcv.map((b) => b.close)
+  const rsi = computeRSI(closes, 14)
+  const macd = computeMACD(closes)
+  const kdj_k = computeKDJ_K(ohlcv, 9)
+  return { macd: round2(macd), rsi: round2(rsi), kdj_k: round2(kdj_k) }
+}
+
+export function deriveSignal(ind: { rsi: number; macd: number; kdj_k: number }): 'BUY' | 'SELL' | 'WATCH' {
+  if (ind.rsi < 30) return 'BUY'
+  if (ind.rsi > 70) return 'SELL'
+  return 'WATCH'
+}
+
+export function getIndicatorSnapshot(ticker: string): IndicatorSnapshot {
+  const bars = genOHLCV(ticker, 90)
+  const ind = computeIndicators(bars)
+  const market: 'CN' | 'US' = /^\d{6}(\.(SH|SZ))?$/.test(ticker) ? 'CN' : 'US'
+  const last = bars[bars.length - 1]
   return {
     ticker,
-    market: sig.market,
-    date: sig.date,
-    macd: sig.indicators['macd'],
-    rsi: sig.indicators['rsi'],
-    kdj_k: sig.indicators['kdj_k'],
+    market,
+    date: last ? last.date : new Date().toISOString().slice(0, 10),
+    macd: ind.macd,
+    rsi: ind.rsi,
+    kdj_k: ind.kdj_k,
   }
 }
 

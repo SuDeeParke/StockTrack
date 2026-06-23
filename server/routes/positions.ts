@@ -5,6 +5,7 @@ import {
   getPositions, getPosition, createPosition, updatePosition,
   deletePosition, bulkDeletePositions, getPositionsWithDerived,
 } from '../services/positions-db.js'
+import { getIndicatorSnapshot, deriveSignal, genOHLCV } from '../services/signals-mock.js'
 
 export const positionsRouter = new Hono()
 
@@ -88,5 +89,36 @@ positionsRouter.post('/api/positions/bulk-delete', zValidator('json', bulkDelete
 })
 
 positionsRouter.get('/api/positions/signals', (c) => {
-  return c.json({ detail: 'not implemented' }, 501)
+  const userId = Number(c.get('userId'))
+  const positions = getPositions(userId)
+  const signals = positions.map((p) => {
+    try {
+      const snap = getIndicatorSnapshot(p.ticker)
+      const signal_type = deriveSignal({ rsi: snap.rsi ?? 50, macd: snap.macd ?? 0, kdj_k: snap.kdj_k ?? 50 })
+      const bars = genOHLCV(p.ticker, 90)
+      const price = bars.length ? Math.round(bars[bars.length - 1].close * 100) / 100 : 0
+      return {
+        ticker: p.ticker,
+        name: p.name,
+        market: p.market,
+        signal_type,
+        date: snap.date,
+        price,
+        indicators: { macd: snap.macd ?? 0, rsi: snap.rsi ?? 50, kdj_k: snap.kdj_k ?? 50 },
+        stale: false,
+      }
+    } catch {
+      return {
+        ticker: p.ticker,
+        name: p.name,
+        market: p.market,
+        signal_type: 'WATCH' as const,
+        date: new Date().toISOString().slice(0, 10),
+        price: 0,
+        indicators: { macd: 0, rsi: 50, kdj_k: 50 },
+        stale: true,
+      }
+    }
+  })
+  return c.json(signals)
 })
