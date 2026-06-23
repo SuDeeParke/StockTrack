@@ -57,15 +57,12 @@ export default function Backtest() {
     queryFn: () => api.getStrategies(),
   })
 
-  const { data: signals = [] } = useQuery({
-    queryKey: ['signals', 'ALL'],
-    queryFn: () => api.getSignals('ALL'),
-    staleTime: 5 * 60 * 1000,
+  const { data: positions = [] } = useQuery({
+    queryKey: ['positions'],
+    queryFn: () => api.listPositions(),
   })
 
-  const watchlist = Array.from(
-    new Map(signals.map((s) => [s.ticker, { ticker: s.ticker, name: s.name ?? s.ticker }])).values(),
-  )
+  const watchlist = positions.map((p) => ({ ticker: p.ticker, name: p.name }))
 
   useEffect(() => {
     if (strategies.length > 0 && !strategyId) {
@@ -167,79 +164,94 @@ export default function Backtest() {
       <div className="flex w-full flex-shrink-0 flex-col gap-4 md:w-64">
         <h1 className="text-2xl font-bold text-zinc-50">策略回测</h1>
 
-        <div>
-          <div className="mb-1 text-xs font-semibold text-zinc-500">策略</div>
-          <Select value={strategyId} onValueChange={setStrategyId}>
-            <SelectTrigger>
-              <SelectValue placeholder="选择策略" />
-            </SelectTrigger>
-            <SelectContent>
-              {strategies.map((s) => (
-                <SelectItem key={s.id} value={s.id}>
-                  {s.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {strategyId && (
-            <div className="mt-1 text-xs text-zinc-500">
-              {strategies.find((s) => s.id === strategyId)?.description}
+        <Alert className="border-amber-800 bg-amber-950/50 text-amber-400">
+          <AlertDescription>🎲 回测数据为模拟（随机数引擎），仅供 UX 验证</AlertDescription>
+        </Alert>
+
+        {positions.length > 0 ? (
+          <>
+            <div>
+              <div className="mb-1 text-xs font-semibold text-zinc-500">策略</div>
+              <Select value={strategyId} onValueChange={setStrategyId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="选择策略" />
+                </SelectTrigger>
+                <SelectContent>
+                  {strategies.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {strategyId && (
+                <div className="mt-1 text-xs text-zinc-500">
+                  {strategies.find((s) => s.id === strategyId)?.description}
+                </div>
+              )}
             </div>
-          )}
-        </div>
 
-        <div>
-          <div className="mb-1 text-xs font-semibold text-zinc-500">
-            股票池（{selectedTickers.length} 只）
-          </div>
-          <div className="flex flex-wrap gap-1">
-            {watchlist.map(({ ticker, name }) => {
-              const active = selectedTickers.includes(ticker)
-              const label = name !== ticker ? name : ticker
-              return (
-                <button
-                  key={ticker}
-                  type="button"
-                  title={label}
-                  onClick={() => toggleTicker(ticker)}
-                  className={`ticker-tag h-auto rounded px-2 py-0.5 text-xs transition-colors ${
-                    active
-                      ? 'border border-zinc-500 bg-zinc-800 text-zinc-50 hover:bg-zinc-700'
-                      : 'border border-zinc-800 bg-transparent text-zinc-500 hover:text-zinc-300'
-                  }`}
-                >
-                  <span className="ticker-tag-label">
-                    <span className="inner">{label}</span>
-                  </span>
-                </button>
-              )
-            })}
-          </div>
-        </div>
+            <div>
+              <div className="mb-1 text-xs font-semibold text-zinc-500">
+                股票池（{selectedTickers.length} 只）
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {watchlist.map(({ ticker, name }) => {
+                  const active = selectedTickers.includes(ticker)
+                  const label = name !== ticker ? name : ticker
+                  return (
+                    <button
+                      key={ticker}
+                      type="button"
+                      title={label}
+                      onClick={() => toggleTicker(ticker)}
+                      className={`ticker-tag h-auto rounded px-2 py-0.5 text-xs transition-colors ${
+                        active
+                          ? 'border border-zinc-500 bg-zinc-800 text-zinc-50 hover:bg-zinc-700'
+                          : 'border border-zinc-800 bg-transparent text-zinc-500 hover:text-zinc-300'
+                      }`}
+                    >
+                      <span className="ticker-tag-label">
+                        <span className="inner">{label}</span>
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
 
-        <div>
-          <div className="mb-1 text-xs font-semibold text-zinc-500">开始日期</div>
-          <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-        </div>
+            <div>
+              <div className="mb-1 text-xs font-semibold text-zinc-500">开始日期</div>
+              <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+            </div>
 
-        <div>
-          <div className="mb-1 text-xs font-semibold text-zinc-500">结束日期</div>
-          <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-        </div>
+            <div>
+              <div className="mb-1 text-xs font-semibold text-zinc-500">结束日期</div>
+              <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+            </div>
 
-        <Button
-          onClick={handleRun}
-          disabled={mutation.isPending || polling || selectedTickers.length === 0}
-        >
-          {mutation.isPending || polling ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              运行中...
-            </>
-          ) : (
-            '▶ 运行回测'
-          )}
-        </Button>
+            <Button
+              onClick={handleRun}
+              disabled={mutation.isPending || polling || selectedTickers.length === 0}
+            >
+              {mutation.isPending || polling ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  运行中...
+                </>
+              ) : (
+                '▶ 运行回测'
+              )}
+            </Button>
+          </>
+        ) : (
+          <Alert>
+            <AlertDescription className="flex flex-col gap-2">
+              <span>还没有持仓，无法选择回测股票池</span>
+              <a href="/manage" className="text-zinc-50 underline">去管理添加持仓 →</a>
+            </AlertDescription>
+          </Alert>
+        )}
       </div>
 
       <div className="flex flex-1 flex-col gap-4">
