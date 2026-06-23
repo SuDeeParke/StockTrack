@@ -2,7 +2,6 @@ import { db, encryptJSON, decryptJSON } from './db.js'
 import { randomUUID } from 'crypto'
 import { genOHLCV } from './signals-mock.js'
 import type {
-  Position,
   AccountBalance,
   OrderRequest,
   Order,
@@ -43,29 +42,6 @@ function saveBalance(userId: number, balance: AccountBalance): void {
 }
 
 // ── Public API ──────────────────────────────────────────────────────
-
-export function getPositions(userId: number): Position[] {
-  const rows = db
-    .prepare('SELECT * FROM user_positions WHERE user_id = ? ORDER BY ticker')
-    .all(userId) as any[]
-  return rows.map((row) => {
-    const cp = round2(getCurrentPrice(row.ticker))
-    return {
-      ticker: row.ticker,
-      market: row.market,
-      name: row.name,
-      qty: row.shares,
-      avg_cost: row.cost_basis,
-      current_price: cp,
-      market_value: round2(row.shares * cp),
-      pnl: round2((cp - row.cost_basis) * row.shares),
-      pnl_pct:
-        row.cost_basis > 0
-          ? round2(((cp - row.cost_basis) / row.cost_basis) * 100)
-          : 0,
-    }
-  })
-}
 
 export function getBalance(userId: number): AccountBalance {
   const balance = loadBalance(userId)

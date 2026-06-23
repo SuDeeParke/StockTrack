@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { z } from 'zod'
 import { zValidator } from '@hono/zod-validator'
-import { getPositions, getBalance, getOrders, getOrder, checkRisk, placeOrder } from '../services/portfolio-db.js'
+import { getBalance, getOrders, getOrder, checkRisk, placeOrder } from '../services/portfolio-db.js'
 
 export const portfolioRouter = new Hono()
 
@@ -12,10 +12,6 @@ const orderBody = z.object({
   qty: z.number().int().positive(),
   price: z.number().positive(),
   paper_trade: z.boolean().default(true),
-})
-
-portfolioRouter.get('/api/portfolio/positions', (c) => {
-  return c.json(getPositions(Number(c.get('userId'))))
 })
 
 portfolioRouter.get('/api/portfolio/balance', (c) => {

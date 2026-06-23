@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import app from '../index.js'
+import { authHeaders } from './helpers.js'
 
 describe('Backtest API', () => {
   it('GET /api/backtest/strategies returns ≥3 strategies', async () => {
-    const res = await app.request('/api/backtest/strategies')
+    const res = await app.request('/api/backtest/strategies', { headers: await authHeaders() })
     expect(res.status).toBe(200)
     const data = await res.json() as any[]
     expect(data.length).toBeGreaterThanOrEqual(3)
@@ -14,7 +15,7 @@ describe('Backtest API', () => {
   it('POST /api/backtest/run valid request returns 202', async () => {
     const res = await app.request('/api/backtest/run', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await authHeaders(),
       body: JSON.stringify({
         strategy_id: 'macd_cross',
         tickers: ['600519.SH', 'AAPL.US'],
@@ -31,7 +32,7 @@ describe('Backtest API', () => {
   it('POST /api/backtest/run invalid strategy returns 422', async () => {
     const res = await app.request('/api/backtest/run', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await authHeaders(),
       body: JSON.stringify({
         strategy_id: 'nonexistent_strategy',
         tickers: ['600519.SH'],
@@ -45,7 +46,7 @@ describe('Backtest API', () => {
   it('POST /api/backtest/run empty tickers returns 400', async () => {
     const res = await app.request('/api/backtest/run', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await authHeaders(),
       body: JSON.stringify({
         strategy_id: 'macd_cross',
         tickers: [],
@@ -57,14 +58,14 @@ describe('Backtest API', () => {
   })
 
   it('GET /api/backtest/result/nonexistent returns 404', async () => {
-    const res = await app.request('/api/backtest/result/nonexistent-job-id')
+    const res = await app.request('/api/backtest/result/nonexistent-job-id', { headers: await authHeaders() })
     expect(res.status).toBe(404)
   })
 
   it('run + poll returns DONE with stats and equity_curve', async () => {
     const runRes = await app.request('/api/backtest/run', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await authHeaders(),
       body: JSON.stringify({
         strategy_id: 'rsi_reversal',
         tickers: ['000858.SZ'],
@@ -74,7 +75,7 @@ describe('Backtest API', () => {
     })
     const run = await runRes.json() as any
     await new Promise((r) => setTimeout(r, 50))
-    const pollRes = await app.request(`/api/backtest/result/${run.job_id}`)
+    const pollRes = await app.request(`/api/backtest/result/${run.job_id}`, { headers: await authHeaders() })
     expect(pollRes.status).toBe(200)
     const result = await pollRes.json() as any
     expect(result.status).toBe('DONE')

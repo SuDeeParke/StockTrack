@@ -176,9 +176,6 @@ export const api = {
   getBacktestResult: (jobId: string) =>
     apiClient.get<BacktestResult>(`/api/backtest/result/${jobId}`).then((r) => r.data),
 
-  getPositions: () =>
-    apiClient.get<Position[]>('/api/portfolio/positions').then((r) => r.data),
-
   // Manage positions (self-managed watchlist)
   listPositions: () =>
     apiClient.get<UserPositionWithDerived[]>('/api/positions').then((r) => r.data),
@@ -208,18 +205,6 @@ export const api = {
 
 export type OrderSide = 'BUY' | 'SELL'
 export type OrderStatus = 'PENDING' | 'FILLED' | 'CANCELLED' | 'REJECTED'
-
-export interface Position {
-  ticker: string
-  market: 'CN' | 'US'
-  name: string
-  qty: number
-  avg_cost: number
-  current_price: number
-  market_value: number
-  pnl: number
-  pnl_pct: number
-}
 
 export interface AccountBalance {
   total_assets: number
